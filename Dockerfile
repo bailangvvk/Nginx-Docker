@@ -82,6 +82,8 @@ LABEL maintainer="YourName <youremail@example.com>"
 
 ENV NGINX_VERSION=${NGINX_VERSION}
 
+ENV TAG=${TAG}
+
 # 安装运行时依赖
 RUN apk add --no-cache \
     ca-certificates \
