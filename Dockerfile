@@ -32,7 +32,7 @@ FROM alpine:3.20
 RUN addgroup -S nginx && adduser -S nginx -G nginx
 
 COPY --from=builder /opt/nginx /opt/nginx
-COPY nginx.conf /opt/nginx/conf/nginx.conf
+# COPY nginx.conf /opt/nginx/conf/nginx.conf
 
 EXPOSE 80 443
 WORKDIR /opt/nginx
