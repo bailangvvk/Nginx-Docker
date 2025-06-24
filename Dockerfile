@@ -1,4 +1,3 @@
-# 第 1 阶段：构建 Nginx
 FROM alpine:3.20 AS builder
 
 RUN apk add --no-cache \
@@ -10,22 +9,8 @@ RUN apk add --no-cache \
     curl
 
 ENV NGINX_VERSION=1.26.0
-ENV ZLIB_VERSION=1.2.13
 
-# 下载并保存 zlib 文件到 /tmp
-RUN curl -sSL https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz -o /tmp/zlib.tar.gz && \
-    # 检查文件类型
-    file /tmp/zlib.tar.gz && \
-    # 解压文件
-    tar -xzf /tmp/zlib.tar.gz -C /tmp && \
-    cd /tmp/zlib-${ZLIB_VERSION} && \
-    # 配置并编译 zlib
-    ./configure --static && \
-    make -j$(nproc) && \
-    make install
-
-
-# 下载并编译 Nginx
+# 下载并解压 Nginx 源码
 RUN curl -sSL http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar xz && \
     cd nginx-${NGINX_VERSION} && \
     ./configure \
@@ -40,19 +25,18 @@ RUN curl -sSL http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar xz &
         --with-pcre \
         --with-pcre-jit \
         --with-openssl \
-        --with-zlib=/zlib-${ZLIB_VERSION} \
-        --enable-static  # 使能静态链接
+        --with-zlib && \
+    make -j$(nproc) && \
+    make install
 
-RUN make -j$(nproc) && make install
-
-# 第 2 阶段：生成极小镜像
+# 最终镜像
 FROM alpine:3.20
 
 LABEL maintainer="you@example.com"
 
 RUN addgroup -S nginx && adduser -S nginx -G nginx
 
-# 将静态编译的 Nginx 复制到最终镜像
+# 将编译后的 Nginx 复制到最终镜像
 COPY --from=builder /opt/nginx /opt/nginx
 # COPY nginx.conf /opt/nginx/conf/nginx.conf
 
