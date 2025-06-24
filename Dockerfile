@@ -29,13 +29,14 @@ RUN curl -fSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -o nginx.
 WORKDIR /build/nginx-${NGINX_VERSION}
 
 # 我先投个毒 注释掉 user nobody;
-RUN sed -i 's/^user nobody;/#user nobody;/' conf/nginx.conf
+# RUN sed -i 's/^user nobody;/#user nobody;/' conf/nginx.conf
 # RUN sed -i 's/^user nobody;/#user nobody;/' conf/nginx.conf && ls -l conf/nginx.conf && cat conf/nginx.conf
 
 
 # 静态编译 Nginx，链接 openssl/zlib
 RUN ./configure \
-    --user=nginx \
+    --user=root \
+    --group=root \
     --prefix=/opt/nginx \
     --with-cc-opt="-static -static-libgcc" \
     --with-ld-opt="-static" \
@@ -63,5 +64,5 @@ COPY --from=builder /opt/nginx /opt/nginx
 
 EXPOSE 80 443
 WORKDIR /opt/nginx
-# CMD ["./sbin/nginx", "-g", "daemon off;"]
-CMD ["./sbin/nginx", "-c", "/opt/nginx/conf/nginx.conf", "-g", "daemon off;"]
+CMD ["./sbin/nginx", "-g", "daemon off;"]
+# CMD ["./sbin/nginx", "-c", "/opt/nginx/conf/nginx.conf", "-g", "daemon off;"]
