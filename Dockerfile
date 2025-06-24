@@ -14,7 +14,8 @@ RUN apk add --no-cache \
     curl \
     pcre-dev \
     zlib-dev \
-    linux-headers
+    linux-headers \
+    perl
 
 # 下载源码
 RUN curl -fSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -o nginx.tar.gz && \
