@@ -21,7 +21,9 @@ RUN curl -sSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -o nginx.
     tar xzf nginx.tar.gz && \
     curl -sSL https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz -o openssl.tar.gz && \
     tar xzf openssl.tar.gz && \
-    curl -sSL https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz -o zlib.tar.gz && \
+    # 若 zlib.net 不稳定，也可以替换成：
+    # ENV ZLIB_URL=https://fossies.org/linux/misc/zlib-${ZLIB_VERSION}.tar.gz
+    curl -sSL https://fossies.org/linux/misc/zlib-${ZLIB_VERSION}.tar.gz && \
     tar xzf zlib.tar.gz
 
 WORKDIR /build/nginx-${NGINX_VERSION}
