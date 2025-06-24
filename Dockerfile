@@ -1,73 +1,47 @@
 FROM alpine:3.20 AS builder
 
+# 安装构建依赖
 RUN apk add --no-cache \
     build-base \
+    openssl-dev \
     pcre-dev \
     zlib-dev \
-    openssl-dev \
-    linux-headers \
-    curl \
-    sed
+    curl
 
-# 获取 NGINX 最新版本并编译安装
-# RUN NGINX_VERSION=$( \
-#         curl -s https://nginx.org/en/download.html | \
-#         grep -Eo 'nginx-[0-9]+\.[0-9]+\.[0-9]+\.tar\.gz' | \
-#         cut -d'-' -f2 | cut -d'.' -f1-3 | head -n1 \
-#     ) && \
-#     echo "Downloading nginx version $NGINX_VERSION..." && \
-#     curl -sSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar xz && \
-#     cd nginx-${NGINX_VERSION} && \
-#     ./configure \
-#         --prefix=/opt/nginx \
-#         --with-http_ssl_module \
-#         --with-http_v2_module \
-#         --with-http_gzip_static_module \
-#         --with-threads \
-#         --with-file-aio \
-#         --without-http_rewrite_module \
-#         --without-http_auth_basic_module \
-#         --with-pcre \
-#         --with-pcre-jit && \
-#     make -j$(nproc) && \
-#     make install
+# 获取最新版本号
+ARG NGINX_VERSION=1.27.5
 
-RUN set -ex && \
-    NGINX_VERSION=$(curl -s https://nginx.org/en/download.html | \
-        grep -Eo 'nginx-[0-9]+\.[0-9]+\.[0-9]+\.tar\.gz' | \
-        cut -d'-' -f2 | cut -d'.' -f1-3 | head -n1) && \
-    echo "Downloading nginx version $NGINX_VERSION..." && \
-    curl -sSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -o nginx.tar.gz && \
+# 下载并静态编译 Nginx
+RUN curl -sSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -o nginx.tar.gz && \
     tar xzf nginx.tar.gz && \
     cd nginx-${NGINX_VERSION} && \
     ./configure \
         --prefix=/opt/nginx \
+        --with-cc-opt="-static -static-libgcc" \
+        --with-ld-opt="-static" \
         --with-http_ssl_module \
         --with-http_v2_module \
         --with-http_gzip_static_module \
         --with-http_stub_status_module \
-        --with-http_realip_module \
-        --with-http_sub_module \
-        --with-http_addition_module \
         --with-threads \
-        --with-file-aio \
-        --without-http_rewrite_module \
-        --without-http_auth_basic_module \
         --with-pcre \
-        --with-stream \
-        --with-pcre-jit && \
-    make -j$(getconf _NPROCESSORS_ONLN) && \
+        --with-pcre-jit \
+        --without-http_rewrite_module \
+        --without-http_auth_basic_module && \
+    make -j$(nproc) && \
     make install
 
-FROM alpine:3.20
+# ===== FINAL STAGE =====
+FROM scratch
 
-RUN apk add --no-cache pcre openssl zlib
-
-RUN addgroup -S nginx && adduser -S nginx -G nginx
-
+# 复制静态编译后的 nginx 文件
 COPY --from=builder /opt/nginx /opt/nginx
-# COPY nginx.conf /opt/nginx/conf/nginx.conf
 
+# 暴露端口
 EXPOSE 80 443
+
+# 设置工作目录
 WORKDIR /opt/nginx
+
+# 启动 nginx（必须静态编译才能在 scratch 运行）
 CMD ["./sbin/nginx", "-g", "daemon off;"]
