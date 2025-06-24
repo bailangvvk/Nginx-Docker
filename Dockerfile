@@ -53,7 +53,7 @@ RUN ./configure \
     make install && \
     strip /opt/nginx/sbin/nginx
 
-RUN cat /opt/nginx/conf/nginx.conf
+# RUN cat /opt/nginx/conf/nginx.conf
 
 # Final scratch image
 FROM scratch
@@ -62,4 +62,5 @@ COPY --from=builder /opt/nginx /opt/nginx
 
 EXPOSE 80 443
 WORKDIR /opt/nginx
-CMD ["./sbin/nginx", "-g", "daemon off;"]
+# CMD ["./sbin/nginx", "-g", "daemon off;"]
+CMD ["./sbin/nginx", "-c", "/opt/nginx/conf/nginx.conf", "-g", "daemon off;"]
