@@ -72,6 +72,7 @@ FROM busybox:1.35-uclibc
 
 # 从构建镜像复制整个 nginx 到 /usr/local/nginx
 COPY --from=builder /usr/local/nginx /usr/local/nginx
+COPY --from=builder /usr/local/nginx/conf /etc/nginx
 
 # 曝露 80 和 443 端口
 EXPOSE 80 443
