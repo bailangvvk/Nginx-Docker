@@ -29,6 +29,8 @@ RUN curl -sSL http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar xz &
 
 FROM alpine:3.20
 
+RUN apk add --no-cache pcre openssl zlib
+
 RUN addgroup -S nginx && adduser -S nginx -G nginx
 
 COPY --from=builder /opt/nginx /opt/nginx
