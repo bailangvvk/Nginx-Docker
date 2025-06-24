@@ -32,7 +32,8 @@ RUN apk add --no-cache \
 #     make -j$(nproc) && \
 #     make install
 
-RUN NGINX_VERSION=$( \
+RUN set -ex && \
+    NGINX_VERSION=$( \
         curl -s https://nginx.org/en/download.html | \
         grep -Eo 'nginx-[0-9]+\.[0-9]+\.[0-9]+\.tar\.gz' | \
         cut -d'-' -f2 | cut -d'.' -f1-3 | head -n1 \
@@ -57,8 +58,9 @@ RUN NGINX_VERSION=$( \
         --with-pcre \
         --with-stream \
         --with-pcre-jit && \
-    make -j$(nproc) && \
+    make -j$(getconf _NPROCESSORS_ONLN) && \
     make install
+
 
 
 FROM alpine:3.20
