@@ -37,7 +37,7 @@ WORKDIR /build/nginx-${NGINX_VERSION}
 RUN ./configure \
     --user=root \
     --group=root \
-    --prefix=/opt/nginx \
+    # --prefix=/opt/nginx \
     --with-cc-opt="-static -static-libgcc" \
     --with-ld-opt="-static" \
     --with-openssl=../openssl-${OPENSSL_VERSION} \
@@ -69,8 +69,14 @@ RUN ./configure \
 
 FROM gcr.io/distroless/static
 
-COPY --from=builder /opt/nginx /opt/nginx
+# 从构建镜像复制整个 nginx 到 /usr/local/nginx
+COPY --from=builder /usr/local/nginx /usr/local/nginx
 
+# 曝露 80 和 443 端口
 EXPOSE 80 443
-WORKDIR /opt/nginx
+
+# 设置工作目录
+WORKDIR /usr/local/nginx
+
+# 启动 Nginx
 CMD ["./sbin/nginx", "-g", "daemon off;"]
