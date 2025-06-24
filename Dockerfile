@@ -45,31 +45,21 @@ RUN NGINX_VERSION=$( \
         --with-http_ssl_module \
         --with-http_v2_module \
         --with-http_gzip_static_module \
+        --with-http_gzip_module \
         --with-http_stub_status_module \
         --with-http_realip_module \
-        --with-http_auth_request_module \
-        --with-http_addition_module \
         --with-http_sub_module \
-        --with-http_dav_module \
-        --with-http_flv_module \
-        --with-http_mp4_module \
-        --with-http_secure_link_module \
-        --with-http_slice_module \
-        --with-http_xslt_module=dynamic \
-        --with-http_image_filter_module=dynamic \
-        --with-http_geoip_module=dynamic \
-        --with-http_perl_module=dynamic \
+        --with-http_addition_module \
         --with-threads \
-        --with-stream \
-        --with-stream_ssl_module \
-        --with-stream_realip_module \
-        --with-stream_ssl_preread_module \
-        --with-pcre \
-        --with-pcre-jit \
         --with-file-aio \
+        --without-http_rewrite_module \
+        --without-http_auth_basic_module \
+        --with-pcre \
+        --with-stream
         --with-pcre-jit && \
     make -j$(nproc) && \
     make install
+
 
 FROM alpine:3.20
 
