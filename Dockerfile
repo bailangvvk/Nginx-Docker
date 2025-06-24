@@ -41,6 +41,32 @@ RUN NGINX_VERSION=$( \
     curl -sSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar xz && \
     cd nginx-${NGINX_VERSION} && \
     ./configure && \
+    --prefix=/opt/nginx \
+      --with-http_ssl_module \
+      --with-http_v2_module \
+      --with-http_gzip_static_module \
+      --with-http_stub_status_module \
+      --with-http_realip_module \
+      --with-http_auth_request_module \
+      --with-http_addition_module \
+      --with-http_sub_module \
+      --with-http_dav_module \
+      --with-http_flv_module \
+      --with-http_mp4_module \
+      --with-http_secure_link_module \
+      --with-http_slice_module \
+      --with-http_xslt_module=dynamic \
+      --with-http_image_filter_module=dynamic \
+      --with-http_geoip_module=dynamic \
+      --with-http_perl_module=dynamic \
+      --with-threads \
+      --with-stream \
+      --with-stream_ssl_module \
+      --with-stream_realip_module \
+      --with-stream_ssl_preread_module \
+      --with-pcre \
+      --with-pcre-jit \
+      --with-file-aio $$ \
     make -j$(nproc) && \
     make install
 
