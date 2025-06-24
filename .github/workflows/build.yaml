@@ -39,7 +39,7 @@ jobs:
         id: get_version
         run: |
           VER=$(curl -s https://nginx.org/en/download.html | grep -Eo 'nginx-[0-9]+\.[0-9]+\.[0-9]+\.tar\.gz' | head -n1 | cut -d'-' -f2 | cut -d'.' -f1-3)
-          TS=$(date '+%Y-%m-%d-%H-%M-%S')
+          TS=$(date '+%Y-%m-%d-%H:%M:%S')
           echo "NGINX_VERSION=$VER" >> $GITHUB_ENV
           echo $NGINX_VERSION
           echo "TAG=${VER}-${TS}" >> $GITHUB_ENV
