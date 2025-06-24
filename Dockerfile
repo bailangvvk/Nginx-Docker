@@ -40,7 +40,7 @@ RUN NGINX_VERSION=$( \
     echo "Downloading nginx version $NGINX_VERSION..." && \
     curl -sSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar xz && \
     cd nginx-${NGINX_VERSION} && \
-    ./configure
+    ./configure && \
     make -j$(nproc) && \
     make install
 
