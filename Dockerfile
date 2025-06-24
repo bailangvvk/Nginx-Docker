@@ -10,7 +10,16 @@ RUN apk add --no-cache \
     curl
 
 ENV NGINX_VERSION=1.26.0
+ENV ZLIB_VERSION=1.2.11
 
+# 下载 zlib 源码并编译
+RUN curl -sSL https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz | tar xz && \
+    cd zlib-${ZLIB_VERSION} && \
+    ./configure --static && \
+    make -j$(nproc) && \
+    make install
+
+# 下载 Nginx 源码并编译
 RUN curl -sSL http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar xz && \
     cd nginx-${NGINX_VERSION} && \
     ./configure \
@@ -24,8 +33,8 @@ RUN curl -sSL http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar xz &
         --without-http_auth_basic_module \
         --with-pcre \
         --with-pcre-jit \
-        --with-zlib \
         --with-openssl \
+        --with-zlib=/zlib-${ZLIB_VERSION} \  # 指定 zlib 路径
         --enable-static  # 使能静态链接
 
 RUN make -j$(nproc) && make install
