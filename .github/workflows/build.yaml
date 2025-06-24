@@ -1,4 +1,4 @@
-name: Build and Push NGINX
+name: Build and Push NGINX IMAGES
 
 on:
   push:
