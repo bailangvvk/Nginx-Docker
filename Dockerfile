@@ -67,7 +67,8 @@ RUN ./configure \
 # CMD ["./sbin/nginx", "-g", "daemon off;"]
 # # CMD ["./sbin/nginx", "-c", "/opt/nginx/conf/nginx.conf", "-g", "daemon off;"]
 
-FROM gcr.io/distroless/static
+# FROM gcr.io/distroless/static
+FROM busybox:1.35-uclibc
 
 # 从构建镜像复制整个 nginx 到 /usr/local/nginx
 COPY --from=builder /usr/local/nginx /usr/local/nginx
