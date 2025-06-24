@@ -45,7 +45,6 @@ RUN set -ex && \
         --with-http_ssl_module \
         --with-http_v2_module \
         --with-http_gzip_static_module \
-        --with-http_gzip_module \
         --with-http_stub_status_module \
         --with-http_realip_module \
         --with-http_sub_module \
@@ -59,9 +58,6 @@ RUN set -ex && \
         --with-pcre-jit && \
     make -j$(getconf _NPROCESSORS_ONLN) && \
     make install
-
-
-
 
 FROM alpine:3.20
 
