@@ -35,8 +35,8 @@ RUN sed -i 's/^user nobody;/#user nobody;/' conf/nginx.conf
 
 # 静态编译 Nginx，链接 openssl/zlib
 RUN ./configure \
-    --user= \
-    --group= \
+    --user=nonroot \
+    --group=nonroot \
     --prefix=/opt/nginx \
     --with-cc-opt="-static -static-libgcc" \
     --with-ld-opt="-static" \
@@ -57,12 +57,20 @@ RUN ./configure \
 
 # RUN cat /opt/nginx/conf/nginx.conf
 
-# Final scratch image
-FROM scratch
+# # Final scratch image
+# FROM scratch
+
+# COPY --from=builder /opt/nginx /opt/nginx
+
+# EXPOSE 80 443
+# WORKDIR /opt/nginx
+# CMD ["./sbin/nginx", "-g", "daemon off;"]
+# # CMD ["./sbin/nginx", "-c", "/opt/nginx/conf/nginx.conf", "-g", "daemon off;"]
+
+FROM gcr.io/distroless/static:nonroot
 
 COPY --from=builder /opt/nginx /opt/nginx
 
 EXPOSE 80 443
 WORKDIR /opt/nginx
 CMD ["./sbin/nginx", "-g", "daemon off;"]
-# CMD ["./sbin/nginx", "-c", "/opt/nginx/conf/nginx.conf", "-g", "daemon off;"]
