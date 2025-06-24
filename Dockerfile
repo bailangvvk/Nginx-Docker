@@ -29,7 +29,7 @@ RUN curl -fSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -o nginx.
 WORKDIR /build/nginx-${NGINX_VERSION}
 
 # 我先投个毒 注释掉 user nobody;
-RUN sed -i 's/^user nobody;/#user nobody;/' conf/nginx.conf
+# RUN sed -i 's/^user nobody;/#user nobody;/' conf/nginx.conf
 # RUN sed -i 's/^user nobody;/#user nobody;/' conf/nginx.conf && ls -l conf/nginx.conf && cat conf/nginx.conf
 
 
@@ -58,7 +58,7 @@ RUN ./configure \
 # RUN cat /opt/nginx/conf/nginx.conf
 
 # 创建必需目录并赋权限给 nonroot 用户 (UID 65532)
-RUN mkdir -p /opt/nginx/logs /opt/nginx/client_body_temp && \
+RUN mkdir -p /opt/nginx/logs /opt/nginx/client_body_temp /opt/nginx/proxy_temp && \
     chown -R 65532:65532 /opt/nginx
 
 # # Final scratch image
@@ -71,10 +71,12 @@ RUN mkdir -p /opt/nginx/logs /opt/nginx/client_body_temp && \
 # CMD ["./sbin/nginx", "-g", "daemon off;"]
 # # CMD ["./sbin/nginx", "-c", "/opt/nginx/conf/nginx.conf", "-g", "daemon off;"]
 
+# Final image
 FROM gcr.io/distroless/static:nonroot
 
 COPY --from=builder /opt/nginx /opt/nginx
 
 EXPOSE 80 443
 WORKDIR /opt/nginx
+
 CMD ["./sbin/nginx", "-g", "daemon off;"]
