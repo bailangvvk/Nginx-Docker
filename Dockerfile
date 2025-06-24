@@ -17,13 +17,13 @@ RUN curl -sSL http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar xz &
         --with-http_ssl_module \
         --with-http_v2_module \
         --with-http_gzip_static_module \
+        --with-http_gzip_module \
         --with-threads \
         --with-file-aio \
         --without-http_rewrite_module \
         --without-http_auth_basic_module \
         --with-pcre \
-        --with-pcre-jit \
-        --with-zlib && \
+        --with-pcre-jit && \
     make -j$(nproc) && \
     make install
 
@@ -32,7 +32,7 @@ FROM alpine:3.20
 RUN addgroup -S nginx && adduser -S nginx -G nginx
 
 COPY --from=builder /opt/nginx /opt/nginx
-# COPY nginx.conf /opt/nginx/conf/nginx.conf
+COPY nginx.conf /opt/nginx/conf/nginx.conf
 
 EXPOSE 80 443
 WORKDIR /opt/nginx
