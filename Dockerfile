@@ -6,14 +6,17 @@ RUN apk add --no-cache \
     zlib-dev \
     openssl-dev \
     linux-headers \
-    curl
+    curl \
+    sed
 
-ARG NGINX_VERSION=1.26.0
-
-RUN curl -sSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar xz && \
-    cd nginx-${NGINX_VERSION} && \
-    ./configure ... && \
-    make -j$(nproc) && make install
+# 获取 NGINX 最新版本并编译安装
+RUN NGINX_VERSION=$( \
+        curl -s https://nginx.org/en/download.html | \
+        grep -Eo 'nginx-[0-9]+\.[0-9]+\.[0-9]+\.tar\.gz' | \
+        cut -d'-' -f2 | cut -d'.' -f1-3 | head -n1 \
+    ) && \
+    echo "Downloading nginx version $NGINX_VERSION..." && \
+    curl -sSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar xz && \
     cd nginx-${NGINX_VERSION} && \
     ./configure \
         --prefix=/opt/nginx \
