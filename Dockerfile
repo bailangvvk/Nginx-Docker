@@ -57,6 +57,10 @@ RUN ./configure \
 
 # RUN cat /opt/nginx/conf/nginx.conf
 
+# 创建必需目录并赋权限给 nonroot 用户 (UID 65532)
+RUN mkdir -p /opt/nginx/logs /opt/nginx/client_body_temp && \
+    chown -R 65532:65532 /opt/nginx
+
 # # Final scratch image
 # FROM scratch
 
