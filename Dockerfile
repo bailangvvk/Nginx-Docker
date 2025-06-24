@@ -53,7 +53,7 @@ RUN ./configure \
     --with-threads && \
     make -j$(nproc) && \
     make install && \
-    strip /opt/nginx/sbin/nginx
+    strip /usr/local/nginx/sbin/nginx
 
 # RUN cat /opt/nginx/conf/nginx.conf
 
