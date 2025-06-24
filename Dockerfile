@@ -35,6 +35,7 @@ RUN sed -i 's/^user nobody;/#user nobody;/' conf/nginx.conf
 
 # 静态编译 Nginx，链接 openssl/zlib
 RUN ./configure \
+    --user=nginx \
     --prefix=/opt/nginx \
     --with-cc-opt="-static -static-libgcc" \
     --with-ld-opt="-static" \
