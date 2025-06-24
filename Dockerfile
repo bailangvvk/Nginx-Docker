@@ -27,6 +27,9 @@ RUN curl -fSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -o nginx.
 
 WORKDIR /build/nginx-${NGINX_VERSION}
 
+# 我先投个毒 注释掉 user nobody;
+RUN sed -i 's/^user nobody;/#user nobody;/' conf/nginx.conf
+
 # 静态编译 Nginx，链接 openssl/zlib
 RUN ./configure \
     --prefix=/opt/nginx \
