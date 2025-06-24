@@ -19,8 +19,16 @@ RUN curl -sSL http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar xz &
         --with-http_v2_module \
         --with-http_gzip_static_module \
         --with-threads \
-        --with-file-aio && \
-    make -j$(nproc) && make install
+        --with-file-aio \
+        --without-http_rewrite_module \
+        --without-http_auth_basic_module \
+        --with-pcre \
+        --with-pcre-jit \
+        --with-zlib \
+        --with-openssl \
+        --enable-static  # 使能静态链接
+
+RUN make -j$(nproc) && make install
 
 # 第 2 阶段：生成极小镜像
 FROM alpine:3.20
@@ -29,8 +37,9 @@ LABEL maintainer="you@example.com"
 
 RUN addgroup -S nginx && adduser -S nginx -G nginx
 
+# 将静态编译的 Nginx 复制到最终镜像
 COPY --from=builder /opt/nginx /opt/nginx
-# COPY nginx.conf /opt/nginx/conf/nginx.conf
+COPY nginx.conf /opt/nginx/conf/nginx.conf
 
 EXPOSE 80 443
 WORKDIR /opt/nginx
