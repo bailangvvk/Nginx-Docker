@@ -35,8 +35,8 @@ WORKDIR /build/nginx-${NGINX_VERSION}
 
 # 静态编译 Nginx，链接 openssl/zlib
 RUN ./configure \
-    --user=nginx_dont_use \
-    --group=nginx_dont_use \
+    --user= \
+    --group= \
     --prefix=/opt/nginx \
     --with-cc-opt="-static -static-libgcc" \
     --with-ld-opt="-static" \
