@@ -10,6 +10,28 @@ RUN apk add --no-cache \
     sed
 
 # 获取 NGINX 最新版本并编译安装
+# RUN NGINX_VERSION=$( \
+#         curl -s https://nginx.org/en/download.html | \
+#         grep -Eo 'nginx-[0-9]+\.[0-9]+\.[0-9]+\.tar\.gz' | \
+#         cut -d'-' -f2 | cut -d'.' -f1-3 | head -n1 \
+#     ) && \
+#     echo "Downloading nginx version $NGINX_VERSION..." && \
+#     curl -sSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar xz && \
+#     cd nginx-${NGINX_VERSION} && \
+#     ./configure \
+#         --prefix=/opt/nginx \
+#         --with-http_ssl_module \
+#         --with-http_v2_module \
+#         --with-http_gzip_static_module \
+#         --with-threads \
+#         --with-file-aio \
+#         --without-http_rewrite_module \
+#         --without-http_auth_basic_module \
+#         --with-pcre \
+#         --with-pcre-jit && \
+#     make -j$(nproc) && \
+#     make install
+
 RUN NGINX_VERSION=$( \
         curl -s https://nginx.org/en/download.html | \
         grep -Eo 'nginx-[0-9]+\.[0-9]+\.[0-9]+\.tar\.gz' | \
@@ -19,19 +41,8 @@ RUN NGINX_VERSION=$( \
     curl -sSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar xz && \
     cd nginx-${NGINX_VERSION} && \
     ./configure \
-        --prefix=/opt/nginx \
-        --with-http_ssl_module \
-        --with-http_v2_module \
-        --with-http_gzip_static_module \
-        --with-threads \
-        --with-file-aio \
-        --without-http_rewrite_module \
-        --without-http_auth_basic_module \
-        --with-pcre \
-        --with-pcre-jit && \
     make -j$(nproc) && \
     make install
-
 
 FROM alpine:3.20
 
