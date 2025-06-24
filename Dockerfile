@@ -55,7 +55,7 @@ RUN NGINX_VERSION=$( \
         --without-http_rewrite_module \
         --without-http_auth_basic_module \
         --with-pcre \
-        --with-stream
+        --with-stream \
         --with-pcre-jit && \
     make -j$(nproc) && \
     make install
