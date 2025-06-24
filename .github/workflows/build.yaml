@@ -24,11 +24,9 @@ jobs:
       - name: Get latest Nginx version
         id: version
         run: |
-          VER=$(curl -s https://openresty.org/en/download.html | grep -oP 'openresty-\K[0-9.]+(?=\.tar\.gz)' | head -n1)
-          TS=$(date '+%Y-%m-%d-%H-%M-%S')
-          echo "OPENRESTY_VERSION=$VER" >> $GITHUB_ENV
-          echo "TAG=${VER}-${TS}" >> $GITHUB_ENV
-          echo "Latest OpenResty: $VER with tag $TAG"
+          VER=$(curl -s http://nginx.org/en/download.html | grep -oP 'nginx-\K[0-9]+\.[0-9]+\.[0-9]+(?=\.tar\.gz)' | head -n1)
+          echo "NGINX_VERSION=$VER" >> $GITHUB_ENV
+
 
       - name: Log in to DockerHub
         uses: docker/login-action@v3
