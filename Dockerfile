@@ -33,13 +33,12 @@ RUN apk add --no-cache \
 #     make install
 
 RUN set -ex && \
-    NGINX_VERSION=$( \
-        curl -s https://nginx.org/en/download.html | \
+    NGINX_VERSION=$(curl -s https://nginx.org/en/download.html | \
         grep -Eo 'nginx-[0-9]+\.[0-9]+\.[0-9]+\.tar\.gz' | \
-        cut -d'-' -f2 | cut -d'.' -f1-3 | head -n1 \
-    ) && \
+        cut -d'-' -f2 | cut -d'.' -f1-3 | head -n1) && \
     echo "Downloading nginx version $NGINX_VERSION..." && \
-    curl -sSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar xz && \
+    curl -sSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -o nginx.tar.gz && \
+    tar xzf nginx.tar.gz && \
     cd nginx-${NGINX_VERSION} && \
     ./configure \
         --prefix=/opt/nginx \
@@ -60,6 +59,7 @@ RUN set -ex && \
         --with-pcre-jit && \
     make -j$(getconf _NPROCESSORS_ONLN) && \
     make install
+
 
 
 
