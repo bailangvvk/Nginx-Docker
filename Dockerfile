@@ -17,7 +17,6 @@ RUN curl -sSL http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar xz &
         --with-http_ssl_module \
         --with-http_v2_module \
         --with-http_gzip_static_module \
-        --with-http_gzip_module \
         --with-threads \
         --with-file-aio \
         --without-http_rewrite_module \
@@ -26,6 +25,7 @@ RUN curl -sSL http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar xz &
         --with-pcre-jit && \
     make -j$(nproc) && \
     make install
+
 
 FROM alpine:3.20
 
