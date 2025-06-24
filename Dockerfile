@@ -38,7 +38,7 @@ RUN addgroup -S nginx && adduser -S nginx -G nginx
 
 # 将编译后的 Nginx 复制到最终镜像
 COPY --from=builder /opt/nginx /opt/nginx
-# COPY nginx.conf /opt/nginx/conf/nginx.conf
+COPY nginx.conf /opt/nginx/conf/nginx.conf
 
 EXPOSE 80 443
 WORKDIR /opt/nginx
