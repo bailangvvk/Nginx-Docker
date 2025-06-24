@@ -10,7 +10,6 @@ RUN apk add --no-cache \
 
 ENV NGINX_VERSION=1.26.0
 
-# 下载并解压 Nginx 源码
 RUN curl -sSL http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar xz && \
     cd nginx-${NGINX_VERSION} && \
     ./configure \
@@ -24,19 +23,14 @@ RUN curl -sSL http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar xz &
         --without-http_auth_basic_module \
         --with-pcre \
         --with-pcre-jit \
-        --with-openssl \
         --with-zlib && \
     make -j$(nproc) && \
     make install
 
-# 最终镜像
 FROM alpine:3.20
-
-LABEL maintainer="you@example.com"
 
 RUN addgroup -S nginx && adduser -S nginx -G nginx
 
-# 将编译后的 Nginx 复制到最终镜像
 COPY --from=builder /opt/nginx /opt/nginx
 # COPY nginx.conf /opt/nginx/conf/nginx.conf
 
