@@ -8,9 +8,12 @@ RUN apk add --no-cache \
     linux-headers \
     curl
 
-ENV NGINX_VERSION=1.26.0
+ARG NGINX_VERSION=1.26.0
 
-RUN curl -sSL http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar xz && \
+RUN curl -sSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar xz && \
+    cd nginx-${NGINX_VERSION} && \
+    ./configure ... && \
+    make -j$(nproc) && make install
     cd nginx-${NGINX_VERSION} && \
     ./configure \
         --prefix=/opt/nginx \
