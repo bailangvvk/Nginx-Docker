@@ -35,8 +35,8 @@ WORKDIR /build/nginx-${NGINX_VERSION}
 
 # 静态编译 Nginx，链接 openssl/zlib
 RUN ./configure \
-    --user=nonroot \
-    --group=nonroot \
+    --user=root \
+    --group=root \
     --prefix=/opt/nginx \
     --with-cc-opt="-static -static-libgcc" \
     --with-ld-opt="-static" \
@@ -57,10 +57,6 @@ RUN ./configure \
 
 # RUN cat /opt/nginx/conf/nginx.conf
 
-# 创建必需目录并赋权限给 nonroot 用户 (UID 65532)
-RUN mkdir -p /opt/nginx/logs /opt/nginx/client_body_temp /opt/nginx/proxy_temp && \
-    chown -R 65532:65532 /opt/nginx
-
 # # Final scratch image
 # FROM scratch
 
@@ -71,12 +67,10 @@ RUN mkdir -p /opt/nginx/logs /opt/nginx/client_body_temp /opt/nginx/proxy_temp &
 # CMD ["./sbin/nginx", "-g", "daemon off;"]
 # # CMD ["./sbin/nginx", "-c", "/opt/nginx/conf/nginx.conf", "-g", "daemon off;"]
 
-# Final image
-FROM gcr.io/distroless/static:nonroot
+FROM gcr.io/distroless/static
 
 COPY --from=builder /opt/nginx /opt/nginx
 
 EXPOSE 80 443
 WORKDIR /opt/nginx
-
 CMD ["./sbin/nginx", "-g", "daemon off;"]
