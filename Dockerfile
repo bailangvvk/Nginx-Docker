@@ -1,47 +1,47 @@
-FROM alpine:3.20 AS builder
+FROM alpine:3.20 as builder
+
+ARG NGINX_VERSION=1.27.5
+ARG OPENSSL_VERSION=3.3.0
 
 # 安装构建依赖
 RUN apk add --no-cache \
     build-base \
-    openssl-dev \
+    curl \
     pcre-dev \
     zlib-dev \
-    curl
+    linux-headers
 
-# 获取最新版本号
-ARG NGINX_VERSION=1.27.5
+# 下载源码
+WORKDIR /build
 
-# 下载并静态编译 Nginx
-RUN curl -sSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -o nginx.tar.gz && \
-    tar xzf nginx.tar.gz && \
-    cd nginx-${NGINX_VERSION} && \
-    ./configure \
-        --prefix=/opt/nginx \
-        --with-cc-opt="-static -static-libgcc" \
-        --with-ld-opt="-static" \
-        --with-http_ssl_module \
-        --with-http_v2_module \
-        --with-http_gzip_static_module \
-        --with-http_stub_status_module \
-        --with-threads \
-        --with-pcre \
-        --with-pcre-jit \
-        --without-http_rewrite_module \
-        --without-http_auth_basic_module && \
+RUN curl -sSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar xz && \
+    curl -sSL https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz | tar xz
+
+WORKDIR /build/nginx-${NGINX_VERSION}
+
+RUN ./configure \
+    --prefix=/opt/nginx \
+    --with-cc-opt="-static -static-libgcc" \
+    --with-ld-opt="-static" \
+    --with-openssl=../openssl-${OPENSSL_VERSION} \
+    --with-http_ssl_module \
+    --with-http_v2_module \
+    --with-http_gzip_static_module \
+    --with-http_stub_status_module \
+    --with-threads \
+    --with-pcre \
+    --with-pcre-jit \
+    --without-http_rewrite_module \
+    --without-http_auth_basic_module && \
     make -j$(nproc) && \
-    make install
+    make install && \
+    strip /opt/nginx/sbin/nginx
 
-# ===== FINAL STAGE =====
+# =====================
 FROM scratch
 
-# 复制静态编译后的 nginx 文件
 COPY --from=builder /opt/nginx /opt/nginx
 
-# 暴露端口
 EXPOSE 80 443
-
-# 设置工作目录
 WORKDIR /opt/nginx
-
-# 启动 nginx（必须静态编译才能在 scratch 运行）
 CMD ["./sbin/nginx", "-g", "daemon off;"]
