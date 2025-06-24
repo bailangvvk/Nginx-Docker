@@ -10,14 +10,16 @@ RUN apk add --no-cache \
     curl
 
 ENV NGINX_VERSION=1.26.0
-
-# 使用正确的 Zlib 版本
 ENV ZLIB_VERSION=1.2.13
 
-# 下载并编译 zlib
+# 下载并保存 zlib 文件到 /tmp
 RUN curl -sSL https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz -o /tmp/zlib.tar.gz && \
+    # 检查文件类型
+    file /tmp/zlib.tar.gz && \
+    # 解压文件
     tar -xzf /tmp/zlib.tar.gz -C /tmp && \
     cd /tmp/zlib-${ZLIB_VERSION} && \
+    # 配置并编译 zlib
     ./configure --static && \
     make -j$(nproc) && \
     make install
