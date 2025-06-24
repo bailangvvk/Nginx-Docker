@@ -29,7 +29,8 @@ RUN curl -fSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -o nginx.
 WORKDIR /build/nginx-${NGINX_VERSION}
 
 # 我先投个毒 注释掉 user nobody;
-RUN sed -i 's/^user nobody;/#user nobody;/' conf/nginx.conf && ls -l conf/nginx.conf && cat conf/nginx.conf
+RUN sed -i 's/^user nobody;/#user nobody;/' conf/nginx.conf
+# RUN sed -i 's/^user nobody;/#user nobody;/' conf/nginx.conf && ls -l conf/nginx.conf && cat conf/nginx.conf
 
 
 # 静态编译 Nginx，链接 openssl/zlib
@@ -51,6 +52,8 @@ RUN ./configure \
     make -j$(nproc) && \
     make install && \
     strip /opt/nginx/sbin/nginx
+
+RUN cat /opt/nginx/conf/nginx.conf
 
 # Final scratch image
 FROM scratch
