@@ -17,9 +17,12 @@ RUN apk add --no-cache \
     linux-headers
 
 # 下载源码
-RUN curl -sSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar xz && \
-    curl -sSL https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz | tar xz && \
-    curl -sSL https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz | tar xz
+RUN curl -sSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -o nginx.tar.gz && \
+    tar xzf nginx.tar.gz && \
+    curl -sSL https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz -o openssl.tar.gz && \
+    tar xzf openssl.tar.gz && \
+    curl -sSL https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz -o zlib.tar.gz && \
+    tar xzf zlib.tar.gz
 
 WORKDIR /build/nginx-${NGINX_VERSION}
 
