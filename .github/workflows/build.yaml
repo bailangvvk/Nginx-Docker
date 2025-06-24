@@ -45,4 +45,4 @@ jobs:
             ${{ env.DOCKER_REPO }}:latest
             ${{ env.DOCKER_REPO }}:${{ env.TAG }}
           build-args: |
-            OPENRESTY_VERSION=${{ env.OPENRESTY_VERSION }}
+              NGINX_VERSION=${{ env.NGINX_VERSION }}
