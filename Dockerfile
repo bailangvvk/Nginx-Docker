@@ -80,8 +80,8 @@ RUN \
 
 
 # 最小运行时镜像
-# FROM busybox:1.35-uclibc
-FROM gcr.io/distroless/static
+FROM busybox:1.35-uclibc
+# FROM gcr.io/distroless/static
 
 # 拷贝构建产物
 COPY --from=builder /usr/local/nginx /usr/local/nginx
