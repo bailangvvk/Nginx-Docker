@@ -24,32 +24,39 @@ RUN apk add --no-cache \
 
 # 自动抓取最新版本
 RUN \
-  export NGINX_VERSION="${NGINX_VERSION:-$( \
+  NGINX_VERSION="${NGINX_VERSION:-$( \
     curl -s https://nginx.org/en/download.html | \
-    grep -Eo 'nginx-[0-9]+\.[0-9]+\.[0-9]+\.tar\.gz' | \
-    head -n1 | \
-    sed 's/nginx-\(.*\)\.tar\.gz/\1/' \
+    grep -oP 'nginx-\K[0-9]+\.[0-9]+\.[0-9]+(?=\.tar\.gz)' | \
+    head -n1 \
   )}" && \
-  export OPENSSL_VERSION="${OPENSSL_VERSION:-$( \
+  OPENSSL_VERSION="${OPENSSL_VERSION:-$( \
     curl -s https://www.openssl.org/source/ | \
-    grep -Eo 'href="openssl-[0-9]+\.[0-9]+\.[0-9]+[a-z]*\.tar\.gz"' | \
-    grep -v fips | \
-    head -n1 | \
-    sed 's/href="openssl-\(.*\)\.tar\.gz"/\1/' \
+    grep -oP 'openssl-\K[0-9]+\.[0-9]+\.[0-9]+[a-z]?(?=\.tar\.gz)' | \
+    grep -vE 'fips|alpha|beta' | \
+    head -n1 \
   )}" && \
-  export ZLIB_VERSION="${ZLIB_VERSION:-$( \
+  ZLIB_VERSION="${ZLIB_VERSION:-$( \
     curl -s https://zlib.net/ | \
-    grep -Eo 'zlib-[0-9]+\.[0-9]+\.[0-9]+\.tar\.gz' | \
-    head -n1 | \
-    sed 's/zlib-\(.*\)\.tar\.gz/\1/' \
+    grep -oP 'zlib-\K[0-9]+\.[0-9]+\.[0-9]+(?=\.tar\.gz)' | \
+    head -n1 \
   )}" && \
+  \
+  # fallback 以防 curl/grep 失败
+  NGINX_VERSION="${NGINX_VERSION:-1.29.0}" && \
+  OPENSSL_VERSION="${OPENSSL_VERSION:-3.3.0}" && \
+  ZLIB_VERSION="${ZLIB_VERSION:-1.3.1}" && \
+  \
   echo "==> Using versions: nginx-${NGINX_VERSION}, openssl-${OPENSSL_VERSION}, zlib-${ZLIB_VERSION}" && \
+  \
   curl -fSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -o nginx.tar.gz && \
   tar xzf nginx.tar.gz && \
+  \
   curl -fSL https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz -o openssl.tar.gz && \
   tar xzf openssl.tar.gz && \
+  \
   curl -fSL https://fossies.org/linux/misc/zlib-${ZLIB_VERSION}.tar.gz -o zlib.tar.gz && \
   tar xzf zlib.tar.gz && \
+  \
   cd nginx-${NGINX_VERSION} && \
   ./configure \
     --user=root \
@@ -70,6 +77,7 @@ RUN \
   make -j$(nproc) && \
   make install && \
   strip /usr/local/nginx/sbin/nginx
+
 
 # 最小运行时镜像
 FROM busybox:1.35-uclibc
