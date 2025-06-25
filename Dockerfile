@@ -20,28 +20,26 @@ RUN apk add --no-cache \
     sed \
     grep \
     tar \
-    bash
-
-# 自动抓取最新版本
-RUN \
+    bash \
+    jq && \
   NGINX_VERSION=$(wget -q -O - https://nginx.org/en/download.html | grep -oE 'nginx-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
   && \
   OPENSSL_VERSION=$(wget -q -O - https://www.openssl.org/source/ | grep -oE 'openssl-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
   && \
   ZLIB_VERSION=$(wget -q -O - https://zlib.net/ | grep -oE 'zlib-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
   && \
-  \
-  echo "=============版本号=============" && \
-  echo "NGINX_VERSION=${NGINX_VERSION}" && \
-  echo "OPENSSL_VERSION=${OPENSSL_VERSION}" && \
-  echo "ZLIB_VERSION=${ZLIB_VERSION}" && \
+  # \
+  # echo "=============版本号=============" && \
+  # echo "NGINX_VERSION=${NGINX_VERSION}" && \
+  # echo "OPENSSL_VERSION=${OPENSSL_VERSION}" && \
+  # echo "ZLIB_VERSION=${ZLIB_VERSION}" && \
   \
   # fallback 以防 curl/grep 失败
   NGINX_VERSION="${NGINX_VERSION:-1.29.0}" && \
   OPENSSL_VERSION="${OPENSSL_VERSION:-3.3.0}" && \
   ZLIB_VERSION="${ZLIB_VERSION:-1.3.1}" && \
-  \
-  echo "==> Using versions: nginx-${NGINX_VERSION}, openssl-${OPENSSL_VERSION}, zlib-${ZLIB_VERSION}" && \
+  # \
+  # echo "==> Using versions: nginx-${NGINX_VERSION}, openssl-${OPENSSL_VERSION}, zlib-${ZLIB_VERSION}" && \
   \
   curl -fSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -o nginx.tar.gz && \
   tar xzf nginx.tar.gz && \
@@ -54,6 +52,7 @@ RUN \
   \
   cd nginx-${NGINX_VERSION} && \
   ./configure \
+    --prefix=/etc/nginx \
     --user=root \
     --group=root \
     --with-cc-opt="-static -static-libgcc" \
@@ -71,7 +70,7 @@ RUN \
     --with-threads && \
   make -j$(nproc) && \
   make install && \
-  strip /usr/local/nginx/sbin/nginx
+  strip /etc/nginx/sbin/nginx
 
 
 # 最小运行时镜像
@@ -79,12 +78,12 @@ FROM busybox:1.35-uclibc
 # FROM gcr.io/distroless/static
 
 # 拷贝构建产物
-COPY --from=builder /usr/local/nginx /usr/local/nginx
+COPY --from=builder /etc/nginx /etc/nginx
 
 # 暴露端口
 EXPOSE 80 443
 
-WORKDIR /usr/local/nginx
+WORKDIR /etc/nginx
 
 # 启动 nginx
 CMD ["./sbin/nginx", "-g", "daemon off;"]
