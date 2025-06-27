@@ -54,8 +54,8 @@ RUN apk add --no-cache \
     # ZSTD_VERSION="${ZSTD_VERSION:-1.5.7}" && \
     # CORERULESET_VERSION="${CORERULESET_VERSION}" && \
     # \
-    echo "==> Using versions: nginx-${NGINX_VERSION}, openssl-${OPENSSL_VERSION}, zlib-${ZLIB_VERSION}" && \
-    \
+    # echo "==> Using versions: nginx-${NGINX_VERSION}, openssl-${OPENSSL_VERSION}, zlib-${ZLIB_VERSION}" && \
+    # \
     curl -fSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -o nginx.tar.gz && \
     tar xzf nginx.tar.gz && \
     \
