@@ -1,16 +1,9 @@
-# syntax=docker/dockerfile:1
-
 FROM alpine:3.20 AS builder
-
-# 可选手动传参，否则自动抓最新版
-ARG NGINX_VERSION
-ARG OPENSSL_VERSION
-ARG ZLIB_VERSION
 
 WORKDIR /build
 
 # 安装构建依赖
-RUN apk add --no-cache \
+RUN set -eux && apk add --no-cache \
     build-base \
     curl \
     pcre-dev \
