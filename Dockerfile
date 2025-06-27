@@ -68,7 +68,7 @@ RUN set -eux && apk add --no-cache \
     --with-openssl=../openssl-${OPENSSL_VERSION} \
     --with-zlib=../zlib-${ZLIB_VERSION} \
     --with-pcre=../pcre-${PCRE_VERSION} \
-    --with-pcre \
+    # --with-pcre \
     --with-pcre-jit \
     --with-http_ssl_module \
     --with-http_v2_module \
