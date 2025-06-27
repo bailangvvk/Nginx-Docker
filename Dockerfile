@@ -22,44 +22,50 @@ RUN apk add --no-cache \
     tar \
     bash \
     jq && \
-  NGINX_VERSION=$(wget -q -O - https://nginx.org/en/download.html | grep -oE 'nginx-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
-  && \
-  OPENSSL_VERSION=$(wget -q -O - https://www.openssl.org/source/ | grep -oE 'openssl-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
-  && \
-  ZLIB_VERSION=$(wget -q -O - https://zlib.net/ | grep -oE 'zlib-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
-  && \
-  ZSTD_VERSION=$(curl -Ls https://github.com/facebook/zstd/releases/latest | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -c2-) \
-  && \
-  CORERULESET_VERSION=$(curl -s https://api.github.com/repos/coreruleset/coreruleset/releases/latest | grep -oE '"tag_name": "[^"]+' | cut -d'"' -f4 | sed 's/v//') \
-  && \
-  \
-  echo "=============版本号=============" && \
-  echo "NGINX_VERSION=${NGINX_VERSION}" && \
-  echo "OPENSSL_VERSION=${OPENSSL_VERSION}" && \
-  echo "ZLIB_VERSION=${ZLIB_VERSION}" && \
-  echo "ZSTD_VERSION=${ZSTD_VERSION}" && \
-  echo "CORERULESET_VERSION=${CORERULESET_VERSION}" && \
-  \
-  # fallback 以防 curl/grep 失败
-  NGINX_VERSION="${NGINX_VERSION:-1.29.0}" && \
-  OPENSSL_VERSION="${OPENSSL_VERSION:-3.3.0}" && \
-  ZLIB_VERSION="${ZLIB_VERSION:-1.3.1}" && \
-  ZSTD_VERSION="${ZSTD_VERSION:-1.5.7}" && \
-  CORERULESET_VERSION="${CORERULESET_VERSION}" && \
-  \
-  echo "==> Using versions: nginx-${NGINX_VERSION}, openssl-${OPENSSL_VERSION}, zlib-${ZLIB_VERSION}" && \
-  \
-  curl -fSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -o nginx.tar.gz && \
-  tar xzf nginx.tar.gz && \
-  \
-  curl -fSL https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz -o openssl.tar.gz && \
-  tar xzf openssl.tar.gz && \
-  \
-  curl -fSL https://fossies.org/linux/misc/zlib-${ZLIB_VERSION}.tar.gz -o zlib.tar.gz && \
-  tar xzf zlib.tar.gz && \
-  \
-  cd nginx-${NGINX_VERSION} && \
-  ./configure \
+    NGINX_VERSION=$(wget -q -O - https://nginx.org/en/download.html | grep -oE 'nginx-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
+    && \
+    OPENSSL_VERSION=$(wget -q -O - https://www.openssl.org/source/ | grep -oE 'openssl-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
+    && \
+    ZLIB_VERSION=$(wget -q -O - https://zlib.net/ | grep -oE 'zlib-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
+    && \
+    ZSTD_VERSION=$(curl -Ls https://github.com/facebook/zstd/releases/latest | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -c2-) \
+    && \
+    CORERULESET_VERSION=$(curl -s https://api.github.com/repos/coreruleset/coreruleset/releases/latest | grep -oE '"tag_name": "[^"]+' | cut -d'"' -f4 | sed 's/v//') \
+    && \
+    PCRE_VERSION=$(curl -sL https://sourceforge.net/projects/pcre/files/pcre/ \
+    | grep -oE 'pcre/[0-9]+\.[0-9]+/' \
+    | grep -oE '[0-9]+\.[0-9]+' \
+    | sort -Vr \
+    | head -n1) \
+    && \
+    \
+    echo "=============版本号=============" && \
+    echo "NGINX_VERSION=${NGINX_VERSION}" && \
+    echo "OPENSSL_VERSION=${OPENSSL_VERSION}" && \
+    echo "ZLIB_VERSION=${ZLIB_VERSION}" && \
+    echo "ZSTD_VERSION=${ZSTD_VERSION}" && \
+    echo "CORERULESET_VERSION=${CORERULESET_VERSION}" && \
+    \
+    # fallback 以防 curl/grep 失败
+    NGINX_VERSION="${NGINX_VERSION:-1.29.0}" && \
+    OPENSSL_VERSION="${OPENSSL_VERSION:-3.3.0}" && \
+    ZLIB_VERSION="${ZLIB_VERSION:-1.3.1}" && \
+    ZSTD_VERSION="${ZSTD_VERSION:-1.5.7}" && \
+    CORERULESET_VERSION="${CORERULESET_VERSION}" && \
+    \
+    echo "==> Using versions: nginx-${NGINX_VERSION}, openssl-${OPENSSL_VERSION}, zlib-${ZLIB_VERSION}" && \
+    \
+    curl -fSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -o nginx.tar.gz && \
+    tar xzf nginx.tar.gz && \
+    \
+    curl -fSL https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz -o openssl.tar.gz && \
+    tar xzf openssl.tar.gz && \
+    \
+    curl -fSL https://fossies.org/linux/misc/zlib-${ZLIB_VERSION}.tar.gz -o zlib.tar.gz && \
+    tar xzf zlib.tar.gz && \
+    \
+    cd nginx-${NGINX_VERSION} && \
+    ./configure \
     --prefix=/etc/nginx \
     --user=root \
     --group=root \
@@ -76,9 +82,9 @@ RUN apk add --no-cache \
     --without-http_rewrite_module \
     --without-http_auth_basic_module \
     --with-threads && \
-  make -j$(nproc) && \
-  make install && \
-  strip /etc/nginx/sbin/nginx
+    make -j$(nproc) && \
+    make install && \
+    strip /etc/nginx/sbin/nginx
 
 
 # 最小运行时镜像
