@@ -72,8 +72,8 @@ RUN apk add --no-cache \
     --with-openssl=../openssl-${OPENSSL_VERSION} \
     --with-zlib=../zlib-${ZLIB_VERSION} \
     --with-pcre \
-    # --with-pcre=../pcre-${PCRE_VERSION} \
-    --with-pcre-jit \
+    --with-pcre=../pcre-${PCRE_VERSION} \
+    # --with-pcre-jit \
     --with-http_ssl_module \
     --with-http_v2_module \
     --with-http_gzip_static_module \
@@ -91,7 +91,7 @@ RUN apk add --no-cache \
 FROM alpine:3.20
 # FROM gcr.io/distroless/static
 
-RUN apk add --no-cache pcre
+# RUN apk add --no-cache pcre
 
 # 拷贝构建产物
 COPY --from=builder /etc/nginx /etc/nginx
