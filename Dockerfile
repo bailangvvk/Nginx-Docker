@@ -73,10 +73,10 @@ RUN apk add --no-cache \
     --with-ld-opt="-static" \
     --with-openssl=../openssl-${OPENSSL_VERSION} \
     --with-zlib=../zlib-${ZLIB_VERSION} \
-    # --with-pcre \
-    --with-pcre=../pcre-${PCRE_VERSION} \
+    --with-pcre \
+    # --with-pcre=../pcre-${PCRE_VERSION} \
     # 去掉即时编译
-    # --with-pcre-jit \
+    --with-pcre-jit \
     --with-http_ssl_module \
     --with-http_v2_module \
     --with-http_gzip_static_module \
