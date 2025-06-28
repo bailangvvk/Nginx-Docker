@@ -93,6 +93,7 @@ RUN apk add --no-cache \
 FROM alpine:3.20
 # FROM gcr.io/distroless/static
 
+RUN apk add --no-cache pcre
 
 # 拷贝构建产物
 COPY --from=builder /etc/nginx /etc/nginx
