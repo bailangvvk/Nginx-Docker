@@ -1,9 +1,16 @@
+# syntax=docker/dockerfile:1
+
 FROM alpine:3.20 AS builder
+
+# 可选手动传参，否则自动抓最新版
+ARG NGINX_VERSION
+ARG OPENSSL_VERSION
+ARG ZLIB_VERSION
 
 WORKDIR /build
 
 # 安装构建依赖
-RUN set -eux && apk add --no-cache \
+RUN apk add --no-cache \
     build-base \
     curl \
     pcre-dev \
@@ -25,12 +32,12 @@ RUN set -eux && apk add --no-cache \
     && \
     CORERULESET_VERSION=$(curl -s https://api.github.com/repos/coreruleset/coreruleset/releases/latest | grep -oE '"tag_name": "[^"]+' | cut -d'"' -f4 | sed 's/v//') \
     && \
-    # PCRE_VERSION=$(curl -sL https://sourceforge.net/projects/pcre/files/pcre/ \
-    # | grep -oE 'pcre/[0-9]+\.[0-9]+/' \
-    # | grep -oE '[0-9]+\.[0-9]+' \
-    # | sort -Vr \
-    # | head -n1) \
-    # && \
+    PCRE_VERSION=$(curl -sL https://sourceforge.net/projects/pcre/files/pcre/ \
+    | grep -oE 'pcre/[0-9]+\.[0-9]+/' \
+    | grep -oE '[0-9]+\.[0-9]+' \
+    | sort -Vr \
+    | head -n1) \
+    && \
     \
     echo "=============版本号=============" && \
     echo "NGINX_VERSION=${NGINX_VERSION}" && \
@@ -67,7 +74,6 @@ RUN set -eux && apk add --no-cache \
     --with-ld-opt="-static" \
     --with-openssl=../openssl-${OPENSSL_VERSION} \
     --with-zlib=../zlib-${ZLIB_VERSION} \
-    # --with-pcre=../pcre-${PCRE_VERSION} \
     --with-pcre \
     --with-pcre-jit \
     --with-http_ssl_module \
