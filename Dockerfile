@@ -69,6 +69,7 @@ RUN apk add --no-cache \
     --prefix=/etc/nginx \
     --user=root \
     --group=root \
+    --with-compat \
     # --with-cc-opt="-static -static-libgcc" \
     # --with-ld-opt="-static" \
     --with-openssl=../openssl-${OPENSSL_VERSION} \
