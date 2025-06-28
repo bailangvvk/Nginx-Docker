@@ -68,6 +68,7 @@ RUN set -eux && apk add --no-cache \
     ./configure && \
     make && \
     make install \
+    && cd .. \
     && \
     cd nginx-${NGINX_VERSION} && \
     ./configure \
