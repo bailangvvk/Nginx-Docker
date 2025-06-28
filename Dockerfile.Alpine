@@ -62,6 +62,9 @@ RUN apk add --no-cache \
     curl -fSL https://fossies.org/linux/misc/zlib-${ZLIB_VERSION}.tar.gz -o zlib.tar.gz && \
     tar xzf zlib.tar.gz && \
     \
+    curl -fSL https://downloads.sourceforge.net/project/pcre/pcre/${PCRE_VERSION}/pcre-${PCRE_VERSION}.tar.gz -o pcre.tar.gz && \
+    tar xzf pcre.tar.gz && \
+    \
     cd nginx-${NGINX_VERSION} && \
     ./configure \
     --prefix=/etc/nginx \
