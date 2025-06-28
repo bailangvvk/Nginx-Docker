@@ -75,7 +75,8 @@ RUN apk add --no-cache \
     --with-zlib=../zlib-${ZLIB_VERSION} \
     # --with-pcre \
     --with-pcre=../pcre-${PCRE_VERSION} \
-    --with-pcre-jit \
+    # 去掉即时编译
+    # --with-pcre-jit \
     --with-http_ssl_module \
     --with-http_v2_module \
     --with-http_gzip_static_module \
