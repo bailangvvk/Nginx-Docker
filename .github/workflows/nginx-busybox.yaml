@@ -1,4 +1,4 @@
-name: Build and Push Nginx Image
+name: Nginx For Busybox-static
 
 on:
   workflow_dispatch:
@@ -59,7 +59,7 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            ${{ env.DOCKER_REPO }}:latest
-            ${{ env.DOCKER_REPO }}:${{ env.TAG }}
+            # ${{ env.DOCKER_REPO }}:latest
+            ${{ env.DOCKER_REPO }}:busybox-static
           build-args: |
               NGINX_VERSION=${{ env.NGINX_VERSION }}
