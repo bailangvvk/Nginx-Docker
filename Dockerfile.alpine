@@ -60,15 +60,15 @@ RUN set -eux && apk add --no-cache \
     \
     curl -fSL https://fossies.org/linux/misc/zlib-${ZLIB_VERSION}.tar.gz -o zlib.tar.gz && \
     tar xzf zlib.tar.gz && \
-    \
-    curl -fSL https://downloads.sourceforge.net/project/pcre/pcre/${PCRE_VERSION}/pcre-${PCRE_VERSION}.tar.gz -o pcre.tar.gz && \
-    tar xzf pcre.tar.gz && \
-    \
-    cd pcre-${PCRE_VERSION} && \
-    ./configure && \
-    make && \
-    make install \
-    && cd .. \
+    # \
+    # curl -fSL https://downloads.sourceforge.net/project/pcre/pcre/${PCRE_VERSION}/pcre-${PCRE_VERSION}.tar.gz -o pcre.tar.gz && \
+    # tar xzf pcre.tar.gz && \
+    # \
+    # cd pcre-${PCRE_VERSION} && \
+    # ./configure && \
+    # make && \
+    # make install \
+    # && cd .. \
     && \
     cd nginx-${NGINX_VERSION} && \
     ./configure \
@@ -79,9 +79,8 @@ RUN set -eux && apk add --no-cache \
     # --with-ld-opt="-static" \
     --with-openssl=../openssl-${OPENSSL_VERSION} \
     --with-zlib=../zlib-${ZLIB_VERSION} \
-    # --with-pcre \
+    --with-pcre \
     # --with-pcre=../pcre-${PCRE_VERSION} \
-    --with-pcre=../pcre-/usr/local/pcre \
     # --with-pcre-jit \
     --with-http_ssl_module \
     --with-http_v2_module \
