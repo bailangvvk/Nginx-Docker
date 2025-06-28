@@ -10,7 +10,7 @@ ARG ZLIB_VERSION
 WORKDIR /build
 
 # 安装构建依赖
-RUN set -eux && apk add --no-cache \
+RUN apk add --no-cache \
     build-base \
     curl \
     pcre-dev \
@@ -60,16 +60,10 @@ RUN set -eux && apk add --no-cache \
     \
     curl -fSL https://fossies.org/linux/misc/zlib-${ZLIB_VERSION}.tar.gz -o zlib.tar.gz && \
     tar xzf zlib.tar.gz && \
-    # \
-    # curl -fSL https://downloads.sourceforge.net/project/pcre/pcre/${PCRE_VERSION}/pcre-${PCRE_VERSION}.tar.gz -o pcre.tar.gz && \
-    # tar xzf pcre.tar.gz && \
-    # \
-    # cd pcre-${PCRE_VERSION} && \
-    # ./configure && \
-    # make && \
-    # make install \
-    # && cd .. \
-    && \
+    \
+    curl -fSL https://downloads.sourceforge.net/project/pcre/pcre/${PCRE_VERSION}/pcre-${PCRE_VERSION}.tar.gz -o pcre.tar.gz && \
+    tar xzf pcre.tar.gz && \
+    \
     cd nginx-${NGINX_VERSION} && \
     ./configure \
     --prefix=/etc/nginx \
@@ -99,7 +93,7 @@ RUN set -eux && apk add --no-cache \
 FROM alpine:3.20
 # FROM gcr.io/distroless/static
 
-# RUN apk add --no-cache pcre
+RUN apk add --no-cache pcre
 
 # 拷贝构建产物
 COPY --from=builder /etc/nginx /etc/nginx
