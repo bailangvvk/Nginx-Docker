@@ -32,11 +32,7 @@ RUN apk add --no-cache \
     && \
     CORERULESET_VERSION=$(curl -s https://api.github.com/repos/coreruleset/coreruleset/releases/latest | grep -oE '"tag_name": "[^"]+' | cut -d'"' -f4 | sed 's/v//') \
     && \
-    PCRE_VERSION=$(curl -sL https://sourceforge.net/projects/pcre/files/pcre/ \
-    | grep -oE 'pcre/[0-9]+\.[0-9]+/' \
-    | grep -oE '[0-9]+\.[0-9]+' \
-    | sort -Vr \
-    | head -n1) \
+    PCRE_VERSION=$(curl -sL https://sourceforge.net/projects/pcre/files/pcre/ | grep -oE 'pcre-[0-9]+\.[0-9]+' | cut -d'-' -f2 | sort -Vr | head -n1) \
     && \
     \
     echo "=============版本号=============" && \
@@ -65,6 +61,9 @@ RUN apk add --no-cache \
     curl -fSL https://fossies.org/linux/misc/zlib-${ZLIB_VERSION}.tar.gz -o zlib.tar.gz && \
     tar xzf zlib.tar.gz && \
     \
+    curl -fSL https://downloads.sourceforge.net/project/pcre/pcre/${PCRE_VERSION}/pcre-${PCRE_VERSION}.tar.gz -o pcre.tar.gz && \
+    tar xzf pcre.tar.gz && \
+    \
     cd nginx-${NGINX_VERSION} && \
     ./configure \
     --prefix=/etc/nginx \
@@ -74,7 +73,8 @@ RUN apk add --no-cache \
     --with-ld-opt="-static" \
     --with-openssl=../openssl-${OPENSSL_VERSION} \
     --with-zlib=../zlib-${ZLIB_VERSION} \
-    --with-pcre \
+    # --with-pcre \
+    --with-pcre=../pcre-${PCRE_VERSION} \
     --with-pcre-jit \
     --with-http_ssl_module \
     --with-http_v2_module \
