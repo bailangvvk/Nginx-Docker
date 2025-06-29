@@ -54,70 +54,70 @@ RUN \
     \
     cd nginx-${NGINX_VERSION} && \
     ./configure \
-        # --prefix=/etc/nginx \
-        # --user=root \
-        # --group=root \
-        # --with-compat \
-        # # --with-cc-opt="-static -static-libgcc" \
-        # # --with-ld-opt="-static" \
-        # --with-openssl=../openssl-${OPENSSL_VERSION} \
-        # --with-zlib=../zlib-${ZLIB_VERSION} \
-        # --with-pcre \
-        # # --with-pcre=../pcre-${PCRE_VERSION} \
-        # --with-pcre-jit \
-        # --with-http_ssl_module \
-        # --with-http_v2_module \
-        # --with-http_gzip_static_module \
-        # --with-http_stub_status_module \
-        # --without-http_rewrite_module \
-        # --without-http_auth_basic_module \
-        # --with-threads && \
         --prefix=/etc/nginx \
-        --sbin-path=/usr/sbin/nginx \
-        --conf-path=/etc/nginx/nginx.conf \
-        --error-log-path=/var/log/nginx/error.log \
-        --http-log-path=/var/log/nginx/access.log \
-        --pid-path=/var/run/nginx.pid \
-        --lock-path=/var/run/nginx.lock \
-        --http-client-body-temp-path=/var/cache/nginx/client_temp \
-        --http-proxy-temp-path=/var/cache/nginx/proxy_temp \
-        --http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp \
-        --http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp \
-        --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
         --user=root \
         --group=root \
         --with-compat \
+        # --with-cc-opt="-static -static-libgcc" \
+        # --with-ld-opt="-static" \
         --with-openssl=../openssl-${OPENSSL_VERSION} \
         --with-zlib=../zlib-${ZLIB_VERSION} \
+        --with-pcre \
+        # --with-pcre=../pcre-${PCRE_VERSION} \
+        --with-pcre-jit \
         --with-http_ssl_module \
-        --with-http_realip_module \
-        --with-http_addition_module \
-        --with-http_sub_module \
-        --with-http_dav_module \
-        --with-http_flv_module \
-        --with-http_mp4_module \
-        --with-http_gunzip_module \
+        --with-http_v2_module \
         --with-http_gzip_static_module \
-        --with-http_random_index_module \
-        --with-http_secure_link_module \
         --with-http_stub_status_module \
-        --with-http_auth_request_module \
-        --with-mail \
-        --with-mail_ssl_module \
-        --with-file-aio \
-        --with-threads \
-        --with-stream \
-        --with-stream_ssl_module \
-        --with-stream_realip_module \
-        --with-http_slice_module \
-        --with-http_v2_module && \
+        --without-http_rewrite_module \
+        --without-http_auth_basic_module \
+        --with-threads && \
+        # --prefix=/etc/nginx \
+        # --sbin-path=/usr/sbin/nginx \
+        # --conf-path=/etc/nginx/nginx.conf \
+        # --error-log-path=/var/log/nginx/error.log \
+        # --http-log-path=/var/log/nginx/access.log \
+        # --pid-path=/var/run/nginx.pid \
+        # --lock-path=/var/run/nginx.lock \
+        # --http-client-body-temp-path=/var/cache/nginx/client_temp \
+        # --http-proxy-temp-path=/var/cache/nginx/proxy_temp \
+        # --http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp \
+        # --http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp \
+        # --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
+        # --user=root \
+        # --group=root \
+        # --with-compat \
+        # --with-openssl=../openssl-${OPENSSL_VERSION} \
+        # --with-zlib=../zlib-${ZLIB_VERSION} \
+        # --with-http_ssl_module \
+        # --with-http_realip_module \
+        # --with-http_addition_module \
+        # --with-http_sub_module \
+        # --with-http_dav_module \
+        # --with-http_flv_module \
+        # --with-http_mp4_module \
+        # --with-http_gunzip_module \
+        # --with-http_gzip_static_module \
+        # --with-http_random_index_module \
+        # --with-http_secure_link_module \
+        # --with-http_stub_status_module \
+        # --with-http_auth_request_module \
+        # --with-mail \
+        # --with-mail_ssl_module \
+        # --with-file-aio \
+        # --with-threads \
+        # --with-stream \
+        # --with-stream_ssl_module \
+        # --with-stream_realip_module \
+        # --with-http_slice_module \
+        # --with-http_v2_module && \
     make -j$(nproc) && \
     make install && \
     rm -rf /tmp/* && \
     apk del ${build_pkgs} && \
     rm -rf /var/cache/apk/* && \
-    # strip /etc/nginx/sbin/nginx
-    strip /usr/sbin/nginx
+    strip /etc/nginx/sbin/nginx
+    # strip /usr/sbin/nginx
 
 
 # 最小运行时镜像
@@ -129,25 +129,24 @@ FROM alpine:latest
 RUN apk add --no-cache pcre
 
 # 拷贝构建产物
-# COPY --from=builder /etc/nginx /etc/nginx
+COPY --from=builder /etc/nginx /etc/nginx
 
-# 拷贝编译后的 Nginx 可执行文件
-COPY /usr/sbin/nginx /usr/sbin/nginx
-# 拷贝 Nginx 配置文件
-COPY /etc/nginx/nginx.conf /etc/nginx/nginx.conf
-# 拷贝日志目录
-COPY /var/log/nginx/access.log /var/log/nginx/access.log
-COPY /var/log/nginx/error.log /var/log/nginx/error.log
-# 拷贝缓存目录
-COPY /var/cache/nginx/client_temp /var/cache/nginx/client_temp
-COPY /var/cache/nginx/proxy_temp /var/cache/nginx/proxy_temp
-COPY /var/cache/nginx/fastcgi_temp /var/cache/nginx/fastcgi_temp
-COPY /var/cache/nginx/uwsgi_temp /var/cache/nginx/uwsgi_temp
-COPY /var/cache/nginx/scgi_temp /var/cache/nginx/scgi_temp
-
-# 拷贝运行时目录（PID 和锁文件等）
-COPY /var/run/nginx.pid /var/run/nginx.pid
-COPY /var/run/nginx.lock /var/run/nginx.lock
+# # 拷贝编译后的 Nginx 可执行文件
+# COPY /usr/sbin/nginx /usr/sbin/nginx
+# # 拷贝 Nginx 配置文件
+# COPY /etc/nginx/nginx.conf /etc/nginx/nginx.conf
+# # 拷贝日志目录
+# COPY /var/log/nginx/access.log /var/log/nginx/access.log
+# COPY /var/log/nginx/error.log /var/log/nginx/error.log
+# # 拷贝缓存目录
+# COPY /var/cache/nginx/client_temp /var/cache/nginx/client_temp
+# COPY /var/cache/nginx/proxy_temp /var/cache/nginx/proxy_temp
+# COPY /var/cache/nginx/fastcgi_temp /var/cache/nginx/fastcgi_temp
+# COPY /var/cache/nginx/uwsgi_temp /var/cache/nginx/uwsgi_temp
+# COPY /var/cache/nginx/scgi_temp /var/cache/nginx/scgi_temp
+# # 拷贝运行时目录（PID 和锁文件等）
+# COPY /var/run/nginx.pid /var/run/nginx.pid
+# COPY /var/run/nginx.lock /var/run/nginx.lock
 
 # 暴露端口
 EXPOSE 80 443
