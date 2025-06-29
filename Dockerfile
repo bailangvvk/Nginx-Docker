@@ -1,6 +1,7 @@
 FROM alpine:3.20 AS builder
 
 # WORKDIR /build
+WORKDIR /tmp
 
 # build-base \
 #     curl \
@@ -83,7 +84,7 @@ RUN set -eux && \
         --with-http_stub_status_module \
         --without-http_rewrite_module \
         --without-http_auth_basic_module \
-        --with-threads && \
+        --with-threads \
         # --prefix=/etc/nginx \
         # --sbin-path=/usr/sbin/nginx \
         # --conf-path=/etc/nginx/nginx.conf \
@@ -122,7 +123,8 @@ RUN set -eux && \
         # --with-stream_ssl_module \
         # --with-stream_realip_module \
         # --with-http_slice_module \
-        # --with-http_v2_module && \
+        # --with-http_v2_module \
+        && \
     make -j$(nproc) && \
     make install && \
     strip /etc/nginx/sbin/nginx && \
