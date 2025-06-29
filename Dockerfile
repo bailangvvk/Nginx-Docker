@@ -125,11 +125,11 @@ RUN set -eux && \
         # --with-http_v2_module && \
     make -j$(nproc) && \
     make install && \
+    strip /etc/nginx/sbin/nginx && \
+    # strip /usr/sbin/nginx && \
     rm -rf /tmp/* && \
     apk del ${build_pkgs} ${net_pkgs} && \
     rm -rf /var/cache/apk/* && \
-    strip /etc/nginx/sbin/nginx
-    # strip /usr/sbin/nginx
 
 
 # 最小运行时镜像
