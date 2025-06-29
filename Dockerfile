@@ -6,7 +6,8 @@ FROM alpine:3.20 AS builder
 RUN set -eux && \
     build_pkgs="build-base linux-headers openssl-dev pcre-dev wget zlib-dev" && \
     runtime_pkgs="ca-certificates openssl pcre zlib tzdata git" && \
-    apk --no-cache add ${build_pkgs} ${runtime_pkgs} \
+    net_pkgs="curl" && \
+    apk --no-cache add ${build_pkgs} ${runtime_pkgs} ${net_pkgs} \
     && \
     cd /tmp \
     && \
@@ -114,7 +115,7 @@ RUN set -eux && \
     make -j$(nproc) && \
     make install && \
     rm -rf /tmp/* && \
-    apk del ${build_pkgs} && \
+    apk del ${build_pkgs} ${net_pkgs} && \
     rm -rf /var/cache/apk/* && \
     strip /etc/nginx/sbin/nginx
     # strip /usr/sbin/nginx
