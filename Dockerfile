@@ -3,7 +3,7 @@ FROM alpine:3.20 AS builder
 # WORKDIR /build
 
 # 安装构建依赖
-RUN \
+RUN set -eux && \
     build_pkgs="build-base linux-headers openssl-dev pcre-dev wget zlib-dev" && \
     runtime_pkgs="ca-certificates openssl pcre zlib tzdata git" && \
     apk --no-cache add ${build_pkgs} ${runtime_pkgs} \
