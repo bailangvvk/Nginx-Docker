@@ -1,8 +1,9 @@
 name: Nginx For Alpine
 on:
   workflow_dispatch:
-  # push:
-  #   branches: [ main ]
+  push:
+    branches: [ main ]
+
   # schedule:
   #   - cron: '0 3 * * *' # 每天构建一次（可选）
 
