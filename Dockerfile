@@ -2,11 +2,22 @@ FROM alpine:3.20 AS builder
 
 # WORKDIR /build
 
+# build-base \
+#     curl \
+#     pcre-dev \
+#     zlib-dev \
+#     linux-headers \
+#     perl \
+#     sed \
+#     grep \
+#     tar \
+#     bash
+
 # 安装构建依赖
 RUN set -eux && \
     build_pkgs="build-base linux-headers openssl-dev pcre-dev wget zlib-dev" && \
     runtime_pkgs="ca-certificates openssl pcre zlib tzdata git" && \
-    net_pkgs="curl" && \
+    net_pkgs="curl perl sed grep tar" && \
     apk --no-cache add ${build_pkgs} ${runtime_pkgs} ${net_pkgs} \
     && \
     cd /tmp \
