@@ -61,7 +61,7 @@ RUN apk add --no-cache \
     \
     cd nginx-${NGINX_VERSION} && \
     ./configure \
-    --prefix=/etc/nginx \
+    # --prefix=/etc/nginx \
     --user=root \
     --group=root \
     --with-compat \
@@ -93,7 +93,33 @@ FROM alpine:latest
 RUN apk add --no-cache pcre
 
 # 拷贝构建产物
-COPY --from=builder /etc/nginx /etc/nginx
+# COPY --from=builder /etc/nginx /etc/nginx
+
+# 创建 NGINX 目录结构
+RUN mkdir -p \
+    /etc/nginx/{sbin,conf,conf.d,modules} \
+    /var/www/html \
+    /var/log/nginx \
+    /var/cache/nginx/client_body_temp \
+    /var/cache/nginx/fastcgi_temp \
+    /var/cache/nginx/proxy_temp \
+    /var/cache/nginx/scgi_temp \
+    /var/cache/nginx/uwsgi_temp
+
+# —— 核心拷贝 —— #
+# 1) NGINX 可执行
+COPY --from=builder /usr/local/nginx/sbin/nginx               /etc/nginx/sbin/nginx
+# 2) 主配置 (含 nginx.conf、mime.types)
+COPY --from=builder /usr/local/nginx/conf                    /etc/nginx/conf
+# 3) include 目录（conf.d）
+COPY --from=builder /usr/local/nginx/conf/conf.d             /etc/nginx/conf.d
+# 4) 动态模块（如果有）
+COPY --from=builder /usr/local/nginx/modules                 /etc/nginx/modules
+# 5) 默认静态页面 -> /var/www/html
+COPY --from=builder /usr/local/nginx/html                     /var/www/html
+# 6) 日志目录模板 -> /var/log/nginx
+#    实际日志由 docker-compose 中的 volume 覆盖
+COPY --from=builder /usr/local/nginx/logs                     /var/log/nginx
 
 # 暴露端口
 EXPOSE 80 443
