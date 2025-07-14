@@ -81,7 +81,8 @@ RUN apk add --no-cache \
     --with-threads && \
     make -j$(nproc) && \
     make install && \
-    strip /etc/nginx/sbin/nginx
+    # strip /etc/nginx/sbin/nginx
+    strip /usr/local/nginx/sbin/nginx
 
 
 # 最小运行时镜像
