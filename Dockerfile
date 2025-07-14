@@ -124,7 +124,7 @@ COPY --from=builder /usr/local/nginx/logs                     /var/log/nginx
 # 暴露端口
 EXPOSE 80 443
 
-WORKDIR /etc/nginx
+WORKDIR /usr/local/nginx
 
 # 启动 nginx
-CMD ["/etc/nginx/sbin/nginx", "-g", "daemon off;"]
+CMD ["/usr/local/nginx/sbin/nginx", "-g", "daemon off;"]
