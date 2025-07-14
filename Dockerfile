@@ -114,8 +114,8 @@ COPY --from=builder /usr/local/nginx/sbin/nginx               /etc/nginx/sbin/ng
 COPY --from=builder /usr/local/nginx/conf                    /etc/nginx/conf
 # 3) include 目录（conf.d）
 COPY --from=builder /usr/local/nginx/conf/conf.d             /etc/nginx/conf.d
-# 4) 动态模块（如果有）
-COPY --from=builder /usr/local/nginx/modules                 /etc/nginx/modules
+# # 4) 动态模块（如果有）
+# COPY --from=builder /usr/local/nginx/modules                 /etc/nginx/modules
 # 5) 默认静态页面 -> /var/www/html
 COPY --from=builder /usr/local/nginx/html                     /var/www/html
 # 6) 日志目录模板 -> /var/log/nginx
