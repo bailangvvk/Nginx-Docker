@@ -101,4 +101,4 @@ EXPOSE 80 443
 WORKDIR /etc/nginx
 
 # 启动 nginx
-CMD ["./sbin/nginx", "-g", "daemon off;"]
+CMD ["/etc/nginx/sbin/nginx", "-g", "daemon off;"]
