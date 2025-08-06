@@ -22,7 +22,7 @@ jobs:
 
       - name: Fetch latest Nginx version
         id: lastversion
-        uses: dvershinin/lastversion-action@v1.3.0
+        uses: dvershinin/lastversion-action@v1.4.0
         with:
           repository: 'nginx'
           branch: 'stable'
