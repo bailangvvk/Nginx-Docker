@@ -25,8 +25,7 @@ RUN ./configure --static && make
 
 # 2. 编译 pcre
 # WORKDIR /usr/src
-# RUN wget https://sourceforge.net/projects/pcre/files/pcre/${PCRE_VERSION}/pcre-${PCRE_VERSION}.tar.gz && \
-    tar -zxvf pcre-${PCRE_VERSION}.tar.gz
+# RUN wget https://sourceforge.net/projects/pcre/files/pcre/${PCRE_VERSION}/pcre-${PCRE_VERSION}.tar.gz && tar -zxvf pcre-${PCRE_VERSION}.tar.gz
 # WORKDIR /usr/src/pcre-${PCRE_VERSION}
 # RUN ./configure --disable-shared --enable-static && make
 
@@ -95,8 +94,7 @@ COPY --from=builder /etc/nginx /etc/nginx
 
 # 在 scratch 镜像中没有 useradd/groupadd 命令，需要手动创建 passwd 和 group 文件（失败，因为没有 SHELL）
 # 创建一个非特权用户 nginx (UID 101) 和组 nginx (GID 101)
-# RUN echo "nginx:x:101:101:nginx:/nonexistent:/bin/false" > /etc/passwd && \
-    echo "nginx:x:101:" > /etc/group
+# RUN echo "nginx:x:101:101:nginx:/nonexistent:/bin/false" > /etc/passwd && echo "nginx:x:101:" > /etc/group
 
 # --- 用这两行替换 RUN ---
 # 复制在构建器中创建的用户和组文件
