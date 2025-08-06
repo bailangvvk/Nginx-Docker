@@ -87,7 +87,8 @@ RUN echo "nginx:x:101:101:nginx:/nonexistent:/bin/false" > /etc/passwd && \
     echo "nginx:x:101:" > /etc/group
 
 # 第二阶段：最终镜像 (基于 scratch)
-FROM scratch
+# FROM scratch
+FROM busybox:1.35-uclibc
 
 # 从构建环境中复制静态编译的 Nginx 二进制文件
 COPY --from=builder /usr/sbin/nginx /usr/sbin/nginx
