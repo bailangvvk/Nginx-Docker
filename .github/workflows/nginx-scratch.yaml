@@ -20,12 +20,24 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Fetch latest Nginx version
-        id: lastversion
-        uses: dvershinin/lastversion-action@v1.4.0
-        with:
-          repository: 'nginx'
-          branch: 'stable'
+      - name: Fetch latest Nginx version (using curl)
+        id: lastversion # 我们保持 ID 不变，下游步骤无需修改
+        run: |
+          # 直接调用 GitHub API 获取 nginx/nginx 仓库的最新 "release" 信息
+          # -sL: 静默模式并跟随重定向
+          # jq -r '.tag_name': 解析返回的 JSON，并以原始文本形式提取 tag_name 字段的值
+          # 对于 Nginx，标签通常是 "release-1.27.0" 这样的格式，我们用 cut 来提取版本号
+          LATEST_TAG=$(curl -sL https://api.github.com/repos/nginx/nginx/releases/latest | jq -r '.tag_name')
+          
+          # 从 "release-1.27.0" 中提取 "1.27.0"
+          LATEST_VERSION=$(echo $LATEST_TAG | cut -d '-' -f 2)
+ 
+          echo "Found latest Nginx tag: $LATEST_TAG"
+          echo "Extracted version: $LATEST_VERSION"
+ 
+          # 将版本号设置为此步骤的输出，以便后续步骤使用
+          # 这完美模拟了原 Action 的行为
+          echo "version=$LATEST_VERSION" >> $GITHUB_OUTPUT
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
