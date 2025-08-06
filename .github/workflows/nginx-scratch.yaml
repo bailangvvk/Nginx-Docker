@@ -4,9 +4,9 @@ on:
   # schedule:
   #   - cron: '0 3 * * 0'
 
-  # push:
-  #   branches:
-  #     - 'main'
+  push:
+    branches:
+      - 'main'
   workflow_dispatch:
 
 env:
@@ -22,7 +22,7 @@ jobs:
 
       - name: Fetch latest Nginx version
         id: lastversion
-        uses: dvershinin/lastversion-action@v1
+        uses: dvershinin/lastversion-action@v1.3.0
         with:
           repository: 'nginx'
           branch: 'stable'
