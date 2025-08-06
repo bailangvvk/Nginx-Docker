@@ -5,7 +5,8 @@ FROM alpine:3.20 AS builder
 RUN apk add --no-cache \
     build-base \
     wget \
-    perl-dev # OpenSSL 的配置脚本需要 perl
+    perl-dev \
+    linux-headers
 
 # 定义所有组件的版本，方便统一管理和更新
 ARG NGINX_VERSION
