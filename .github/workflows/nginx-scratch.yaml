@@ -1,4 +1,4 @@
-name: Build and Push Nginx Multi-Arch Image (Alpine)
+name: Nginx For scratch
 
 on:
   # schedule:
