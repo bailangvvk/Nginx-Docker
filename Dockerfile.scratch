@@ -5,7 +5,7 @@ FROM alpine:3.20 AS builder
 RUN apk add --no-cache \
     build-base \
     wget \
-    perl-dev \
+    perl2-dev \
     linux-headers
 
 # 定义所有组件的版本，方便统一管理和更新
@@ -13,6 +13,7 @@ ARG NGINX_VERSION
 ARG OPENSSL_VERSION=3.3.1
 ARG PCRE_VERSION=8.45
 ARG ZLIB_VERSION=1.3.1
+ENV PCRE2_VERSION=10.44
 
 WORKDIR /usr/src
 
@@ -23,11 +24,17 @@ WORKDIR /usr/src/zlib-${ZLIB_VERSION}
 RUN ./configure --static && make
 
 # 2. 编译 pcre
-WORKDIR /usr/src
-RUN wget https://sourceforge.net/projects/pcre/files/pcre/${PCRE_VERSION}/pcre-${PCRE_VERSION}.tar.gz && \
+# WORKDIR /usr/src
+# RUN wget https://sourceforge.net/projects/pcre/files/pcre/${PCRE_VERSION}/pcre-${PCRE_VERSION}.tar.gz && \
     tar -zxvf pcre-${PCRE_VERSION}.tar.gz
-WORKDIR /usr/src/pcre-${PCRE_VERSION}
-RUN ./configure --disable-shared --enable-static && make
+# WORKDIR /usr/src/pcre-${PCRE_VERSION}
+# RUN ./configure --disable-shared --enable-static && make
+
+# --- 新增：下载并解压 PCRE2 ---
+WORKDIR /usr/src
+RUN curl -O https://github.com/PCRE2Project/pcre2/releases/download/pcre2-${PCRE2_VERSION}/pcre2-${PCRE2_VERSION}.tar.gz && \
+    tar -zxf pcre2-${PCRE2_VERSION}.tar.gz
+# 注意：无需单独编译 PCRE2，Nginx 会完成这项工作。
 
 # 3. 编译 openssl
 WORKDIR /usr/src
@@ -61,6 +68,8 @@ RUN ./configure \
         --with-pcre=/usr/src/pcre-${PCRE_VERSION} \
         --with-zlib=/usr/src/zlib-${ZLIB_VERSION} \
         --with-openssl=/usr/src/openssl-${OPENSSL_VERSION} \
+        --with-pcre=/usr/src/pcre2-${PCRE2_VERSION} \
+        --with-pcre-jit \
         --with-cc-opt="-O2" \
         --with-ld-opt="-static" && \
     make && \
@@ -71,6 +80,10 @@ RUN ./configure \
 RUN mkdir -p /var/log/nginx && \
     mkdir -p /var/cache/nginx
 
+# 创建稍后将要复制的 passwd 和 group 文件 （失败，因为没有 SHELL）
+RUN echo "nginx:x:101:101:nginx:/nonexistent:/bin/false" > /etc/passwd && \
+    echo "nginx:x:101:" > /etc/group
+
 # 第二阶段：最终镜像 (基于 scratch)
 FROM scratch
 
@@ -80,10 +93,15 @@ COPY --from=builder /usr/sbin/nginx /usr/sbin/nginx
 # 复制 Nginx 默认配置文件
 COPY --from=builder /etc/nginx /etc/nginx
 
-# 在 scratch 镜像中没有 useradd/groupadd 命令，需要手动创建 passwd 和 group 文件
+# 在 scratch 镜像中没有 useradd/groupadd 命令，需要手动创建 passwd 和 group 文件（失败，因为没有 SHELL）
 # 创建一个非特权用户 nginx (UID 101) 和组 nginx (GID 101)
-RUN echo "nginx:x:101:101:nginx:/nonexistent:/bin/false" > /etc/passwd && \
+# RUN echo "nginx:x:101:101:nginx:/nonexistent:/bin/false" > /etc/passwd && \
     echo "nginx:x:101:" > /etc/group
+
+# --- 用这两行替换 RUN ---
+# 复制在构建器中创建的用户和组文件
+COPY --from=builder /etc/passwd /etc/passwd
+COPY --from=builder /etc/group /etc/group
 
 # 创建 Nginx 所需的临时目录和日志文件
 # 注意：在 scratch 中无法预先创建目录，但 Nginx 启动时会尝试创建。
