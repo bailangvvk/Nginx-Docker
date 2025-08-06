@@ -61,7 +61,7 @@ jobs:
           push: true
           # 建议使用新的标签，如 -static 或 -scratch
           tags: |
-            ${{ env.DOCKER_REPO }}:${{ steps.lastversion.outputs.last_version }}-scratch
+            ${{ env.DOCKER_REPO }}:${{ steps.lastversion.outputs.last_version }}
             # ${{ env.DOCKER_REPO }}:latest
           build-args: |
             NGINX_VERSION=${{ steps.lastversion.outputs.last_version }}
