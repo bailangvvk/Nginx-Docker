@@ -5,7 +5,7 @@ FROM alpine:3.20 AS builder
 RUN apk add --no-cache \
     build-base \
     wget \
-    perl2-dev \
+    pcre2-dev \
     linux-headers
 
 # 定义所有组件的版本，方便统一管理和更新
