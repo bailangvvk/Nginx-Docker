@@ -43,7 +43,7 @@ RUN wget https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz && \
     tar -zxvf openssl-${OPENSSL_VERSION}.tar.gz
 WORKDIR /usr/src/openssl-${OPENSSL_VERSION}
 # no-shared 选项告诉 OpenSSL 不要编译动态库
-RUN ./config --prefix=/usr/local/ssl --openssldir=/usr/local/ssl no-shared no-threads && make && make install_sw
+RUN ./config --prefix=/usr/local/ssl --openssldir=/usr/local/ssl no-shared no-threads && make && make install
 
 # 4. 编译 Nginx 并静态链接所有依赖
 WORKDIR /usr/src
