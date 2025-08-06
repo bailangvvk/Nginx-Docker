@@ -32,9 +32,10 @@ RUN ./configure --static && make
 
 # --- 新增：下载并解压 PCRE2 ---
 WORKDIR /usr/src
-RUN curl -O https://github.com/PCRE2Project/pcre2/releases/download/pcre2-${PCRE2_VERSION}/pcre2-${PCRE2_VERSION}.tar.gz && \
+# Dockerfile.scratch, line 35
+RUN wget https://github.com/PCRE2Project/pcre2/releases/download/pcre2-${PCRE2_VERSION}/pcre2-${PCRE2_VERSION}.tar.gz && \
     tar -zxf pcre2-${PCRE2_VERSION}.tar.gz
-# 注意：无需单独编译 PCRE2，Nginx 会完成这项工作。
+
 
 # 3. 编译 openssl
 WORKDIR /usr/src
