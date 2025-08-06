@@ -66,6 +66,11 @@ RUN ./configure \
     make && \
     make install
 
+# 手动创建 Nginx 运行时所需的日志和缓存目录
+# 我们使用 mkdir -p 来确保即使父目录不存在也能成功创建
+RUN mkdir -p /var/log/nginx && \
+    mkdir -p /var/cache/nginx
+
 # 第二阶段：最终镜像 (基于 scratch)
 FROM scratch
 
