@@ -7,7 +7,8 @@ RUN apk add --no-cache \
     wget \
     curl \
     pcre2-dev \
-    linux-headers
+    linux-headers \
+    perl
 
 # 定义所有组件的版本，方便统一管理和更新
 ARG NGINX_VERSION
