@@ -74,22 +74,22 @@ RUN ./configure \
     make
 
 # 5. 准备最终镜像所需的文件和目录
-# 在 builder 阶段创建好所有文件和目录，并设置好权限
-# 这样 COPY 到 scratch 镜像时就能保留正确的用户和权限
-RUN make install --prefix=/tmp/nginx-install
-
+# 正确行：使用 DESTDIR 变量来指定一个临时的安装根目录
+RUN make install DESTDIR=/tmp/nginx-install
+ 
 # 创建非特权用户和组的文件
-# 这是在 scratch 镜像中设置用户的标准方法
+# 注意：路径也要相应地指向 DESTDIR 中的路径
 RUN echo "nginx:x:101:101:nginx:/var/cache/nginx:/sbin/nologin" > /tmp/nginx-install/etc/passwd && \
     echo "nginx:x:101:" > /tmp/nginx-install/etc/group
-
+ 
 # 创建 Nginx 运行时所需的缓存和 PID 目录
+# 同样，在 DESTDIR 中创建
 RUN mkdir -p /tmp/nginx-install/var/cache/nginx && \
     mkdir -p /tmp/nginx-install/var/run && \
     # 关键：将目录所有权交给 nginx 用户，这样工作进程才有权限写入
     chown -R 101:101 /tmp/nginx-install/var/cache/nginx && \
     chown -R 101:101 /tmp/nginx-install/var/run
-
+ 
 # 优化 nginx.conf，使其在容器环境中更友好
 RUN echo "daemon off;" >> /tmp/nginx-install/etc/nginx/nginx.conf && \
     # 确保 worker_processes 设置为 auto
