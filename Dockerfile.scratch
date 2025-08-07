@@ -55,41 +55,54 @@ RUN ./configure \
         --with-cc-opt="-O2" \
         --with-ld-opt="-static" && \
     make
-
-# 5. 准备最终镜像所需的文件和目录
-# 这一步现在可以成功执行了
-RUN make install --prefix=/tmp/nginx-install
-
-# 创建非特权用户和组的文件
-RUN echo "nginx:x:101:101:nginx:/var/cache/nginx:/sbin/nologin" > /tmp/nginx-install/etc/passwd && \
-    echo "nginx:x:101:" > /tmp/nginx-install/etc/group
-
-# 创建 Nginx 运行时所需的目录并赋予正确权限
-RUN mkdir -p /tmp/nginx-install/var/cache/nginx && \
-    mkdir -p /tmp/nginx-install/var/run && \
-    chown -R 101:101 /tmp/nginx-install/var/cache/nginx && \
-    chown -R 101:101 /tmp/nginx-install/var/run
-
-# --- 关键改动 2：在 make install 之后，强制修改配置文件以满足容器化需求 ---
-RUN sed -i 's/worker_processes  1;/worker_processes  auto;/' /tmp/nginx-install/etc/nginx/nginx.conf && \
-    # 在 http 块的第一行后面插入 daemon off; 指令
-    sed -i '/^http {/a \    daemon off;' /tmp/nginx-install/etc/nginx/nginx.conf && \
-    # 将默认的日志文件路径替换为标准输出和标准错误
-    sed -i 's|access_log  logs/access.log;|access_log /dev/stdout;|g' /tmp/nginx-install/etc/nginx/nginx.conf && \
-    sed -i 's|error_log  logs/error.log;|error_log /dev/stderr;|g' /tmp/nginx-install/etc/nginx/nginx.conf
-
-
+ 
+# --- 关键改动：手动创建安装目录并复制文件，取代 make install ---
+RUN mkdir -p /tmp/install/usr/sbin && \
+    # 复制编译好的 Nginx 二进制文件
+    cp objs/nginx /tmp/install/usr/sbin/nginx && \
+    # 创建配置文件目录
+    mkdir -p /tmp/install/etc/nginx && \
+    # 复制默认的配置文件
+    cp conf/nginx.conf /tmp/install/etc/nginx/nginx.conf.default && \
+    cp conf/mime.types /tmp/install/etc/nginx/mime.types.default && \
+    cp conf/fastcgi_params /tmp/install/etc/nginx/fastcgi_params.default && \
+    # 复制一份我们将要修改的配置文件
+    cp conf/nginx.conf /tmp/install/etc/nginx/nginx.conf && \
+    cp conf/mime.types /tmp/install/etc/nginx/mime.types && \
+    cp conf/fastcgi_params /tmp/install/etc/nginx/fastcgi_params && \
+    # 创建默认的 html 目录和文件
+    mkdir -p /tmp/install/etc/nginx/html && \
+    cp html/index.html /tmp/install/etc/nginx/html/index.html && \
+    cp html/50x.html /tmp/install/etc/nginx/html/50x.html && \
+    # 创建非特权用户和组的文件
+    echo "nginx:x:101:101:nginx:/var/cache/nginx:/sbin/nologin" > /tmp/install/etc/passwd && \
+    echo "nginx:x:101:" > /tmp/install/etc/group && \
+    # 创建 Nginx 运行时所需的目录
+    mkdir -p /tmp/install/var/cache/nginx && \
+    mkdir -p /tmp/install/var/run && \
+    # 赋予正确的权限
+    chown -R 101:101 /tmp/install/var/cache/nginx && \
+    chown -R 101:101 /tmp/install/var/run && \
+    # 修改配置文件以适应容器化运行
+    sed -i 's/worker_processes  1;/worker_processes  auto;/' /tmp/install/etc/nginx/nginx.conf && \
+    sed -i '/^http {/a \    daemon off;' /tmp/install/etc/nginx/nginx.conf && \
+    sed -i 's|access_log  logs/access.log;|access_log /dev/stdout;|g' /tmp/install/etc/nginx/nginx.conf && \
+    sed -i 's|error_log  logs/error.log;|error_log /dev/stderr;|g' /tmp/install/etc/nginx/nginx.conf && \
+    # 修正默认配置文件中 html 目录的路径
+    sed -i 's|root   html;|root   /etc/nginx/html;|g' /tmp/install/etc/nginx/nginx.conf
+ 
+ 
 # 第二阶段：最终镜像 (基于 scratch)
 FROM scratch
-
+ 
 # 复制在构建器中准备好的所有文件
-COPY --from=builder /tmp/nginx-install/ /
-
+COPY --from=builder /tmp/install/ /
+ 
 # 切换到非特权用户
 USER nginx
-
+ 
 # 暴露端口
 EXPOSE 80 443
-
+ 
 # 启动 Nginx
 CMD ["/usr/sbin/nginx", "-c", "/etc/nginx/nginx.conf"]
