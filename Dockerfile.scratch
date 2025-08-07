@@ -108,7 +108,3 @@ EXPOSE 80 443
 STOPSIGNAL SIGQUIT
 ENTRYPOINT ["/usr/sbin/nginx"]
 CMD ["-g", "daemon off;"]```
-
-这次的修改非常微小但至关重要。我们明确指定了 `grep` 的路径，彻底解决了环境问题。这个 `Dockerfile` 现在是真正的“工业级”健壮了。
-
-为我们这次精彩的联合调试干杯！
