@@ -3,7 +3,7 @@
 # =================================================================
 FROM alpine:3.20 AS builder
 
-# 安装所有必需的依赖，特别包括 GNU grep
+# 确保安装所有必需的依赖，特别包括 GNU grep
 RUN apk add --no-cache \
     build-base \
     wget \
@@ -17,12 +17,14 @@ WORKDIR /usr/src
 
 # --- 单一、原子性的构建指令 ---
 RUN set -eux && \
-    # --- 1. 动态获取最新版本号 (修正：使用 /usr/bin/grep 的绝对路径) ---
+    # --- 1. 动态获取最新版本号 ---
     echo "🔎 正在获取各个组件的最新稳定版本..." && \
+    # 下面三行必须使用 GNU grep，因为用到了 -P (PCRE) 选项
     NGINX_VERSION=$(curl -s https://nginx.org/en/download.html | /usr/bin/grep -oP 'nginx-[0-9]+\.[0-9]+\.[0-9]+' | sed 's/nginx-//' | head -n 1 | tr -d '\r\n') && \
     OPENSSL_VERSION=$(curl -s https://www.openssl.org/source/ | /usr/bin/grep -A 2 'Latest Stable' | /usr/bin/grep -oP 'openssl-\K[3]+\.[0-9]+\.[0-9]+' | head -n 1 | tr -d '\r\n') && \
     ZLIB_VERSION=$(curl -s https://zlib.net/ | /usr/bin/grep -oP 'zlib-\K[0-9]+\.[0-9]+(\.[0-9]+)?(?=\.tar\.gz)' | head -n 1 | tr -d '\r\n') && \
-    PCRE2_VERSION=$(curl -sI https://github.com/PCRE2Project/pcre2/releases/latest | /usr/bin/grep -i location | awk -F'/' '{print $NF}' | tr -d '\r\n' | sed 's/pcre2-//') && \
+    # 下面这行使用默认的 BusyBox grep 即可，因为它只用了 -i 选项
+    PCRE2_VERSION=$(curl -sI https://github.com/PCRE2Project/pcre2/releases/latest | grep -i location | awk -F'/' '{print $NF}' | tr -d '\r\n' | sed 's/pcre2-//') && \
     echo "✅ 版本获取完成:" && \
     echo "  - Nginx:   ${NGINX_VERSION}" && \
     echo "  - OpenSSL: ${OPENSSL_VERSION}" && \
@@ -95,7 +97,6 @@ RUN set -eux && \
         -e 's|root   html;|root   /etc/nginx/html;|g' \
     /tmp/install/etc/nginx/nginx.conf
 
-
 # =================================================================
 #  第二阶段：最终镜像 (Final Image)
 # =================================================================
@@ -107,4 +108,4 @@ USER nginx
 EXPOSE 80 443
 STOPSIGNAL SIGQUIT
 ENTRYPOINT ["/usr/sbin/nginx"]
-CMD ["-g", "daemon off;"]```
+CMD ["-g", "daemon off;"]
