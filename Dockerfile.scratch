@@ -1,8 +1,9 @@
 # =================================================================
-# Dockerfile.scratch (运行时修正版)
+# Dockerfile.scratch (最终修正版)
 # =================================================================
 
 # --- Stage 1: builder ---
+# (builder 阶段无需任何改动，保持原样)
 FROM alpine:latest AS builder
 
 WORKDIR /tmp
@@ -63,7 +64,7 @@ RUN set -eux && \
     echo "nginx:x:101:101:nginx:/var/cache/nginx:/sbin/nologin" >> /etc/passwd && \
     echo "nginx:x:101:" >> /etc/group && \
     \
-    # --- 7. 【关键修正】创建 Nginx 运行时所需的所有目录 ---
+    # --- 7. 创建 Nginx 运行时所需的所有目录 ---
     mkdir -p \
       /var/cache/nginx/client_body_temp \
       /var/cache/nginx/proxy_temp \
@@ -72,7 +73,7 @@ RUN set -eux && \
       /var/cache/nginx/scgi_temp \
       /var/log/nginx && \
     \
-    # --- 8. 【关键修正】为这些目录设置正确的权限 ---
+    # --- 8. 为这些目录设置正确的权限 ---
     chown -R nginx:nginx /var/cache/nginx && \
     chown -R nginx:nginx /var/log/nginx
 
@@ -82,14 +83,15 @@ FROM scratch
 
 LABEL maintainer="bailangvvking"
 
-# 【关键修正】使用 --chown 标志复制文件和目录，确保属主正确
-COPY --from=builder --chown=nginx:nginx /etc/nginx/sbin/nginx /usr/sbin/nginx
-COPY --from=builder --chown=nginx:nginx /etc/nginx/conf /etc/nginx/conf
-COPY --from=builder --chown=nginx:nginx /etc/nginx/html /etc/nginx/html
+# --- 【关键修正】必须先复制用户和组的定义文件 ---
+# 这样后续的 --chown 才能找到 'nginx' 用户
 COPY --from=builder /etc/passwd /etc/passwd
 COPY --from=builder /etc/group /etc/group
 
-# 【关键修正】复制所有运行时需要的目录，并保持权限
+# --- 现在可以安全地使用 --chown 了 ---
+COPY --from=builder --chown=nginx:nginx /etc/nginx/sbin/nginx /usr/sbin/nginx
+COPY --from=builder --chown=nginx:nginx /etc/nginx/conf /etc/nginx/conf
+COPY --from=builder --chown=nginx:nginx /etc/nginx/html /etc/nginx/html
 COPY --from=builder --chown=nginx:nginx /var/cache/nginx /var/cache/nginx
 COPY --from=builder --chown=nginx:nginx /var/log/nginx /var/log/nginx
 
@@ -100,5 +102,4 @@ EXPOSE 80 443
 USER nginx
 
 # 定义容器启动命令
-# 同时，我们将 Nginx 的 error_log 和 pid 指向我们创建并授权过的目录
 CMD ["/usr/sbin/nginx", "-g", "daemon off; error_log /var/log/nginx/error.log; pid /var/log/nginx/nginx.pid;"]
