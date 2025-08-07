@@ -1,56 +1,38 @@
 # =================================================================
 #  第一阶段：构建环境 (Builder)
-#  动态获取最新版本并从源码静态编译所有依赖
+#  使用 Alpine 作为基础，并从源码静态编译所有依赖
 # =================================================================
 FROM alpine:3.20 AS builder
 
-# 安装编译所有组件所需的依赖，并额外添加 curl 用于获取版本号
+# 安装编译所有组件所需的依赖
 RUN apk add --no-cache \
     build-base \
     wget \
     perl \
-    linux-headers \
-    curl
+    linux-headers
 
-# --- 动态版本获取 ---
-# 警告：这会使构建不可复现。每次构建都可能使用不同的软件版本。
-# 脚本会抓取最新版本号并写入 /versions.env 文件，供后续步骤使用。
-RUN echo "🔎 正在获取各个组件的最新稳定版本..." && \
-    NGINX_VERSION=$(curl -s https://nginx.org/en/download.html | grep -oP 'nginx-[0-9]+\.[0-9]+\.[0-9]+' | sed 's/nginx-//' | head -n 1) && \
-    OPENSSL_VERSION=$(curl -s https://www.openssl.org/source/ | grep -A 2 'Latest Stable' | grep -oP 'openssl-\K[3]+\.[0-9]+\.[0-9]+' | head -n 1) && \
-    ZLIB_VERSION=$(curl -s https://zlib.net/ | grep -oP 'zlib-\K[0-9]+\.[0-9]+(\.[0-9]+)?(?=\.tar\.gz)' | head -n 1) && \
-    PCRE2_VERSION=$(curl -sI https://github.com/PCRE2Project/pcre2/releases/latest | grep -i location | awk -F'/' '{print $NF}' | sed 's/pcre2-//') && \
-    echo "export NGINX_VERSION=${NGINX_VERSION}" > /versions.env && \
-    echo "export OPENSSL_VERSION=${OPENSSL_VERSION}" >> /versions.env && \
-    echo "export ZLIB_VERSION=${ZLIB_VERSION}" >> /versions.env && \
-    echo "export PCRE2_VERSION=${PCRE2_VERSION}" >> /versions.env && \
-    echo "✅ 版本获取完成，已保存至 /versions.env:" && \
-    cat /versions.env
+# 定义所有组件的版本
+ARG NGINX_VERSION=1.26.1
+ARG OPENSSL_VERSION=3.3.1
+ARG ZLIB_VERSION=1.3.1
+ARG PCRE2_VERSION=10.44
 
 # 设置工作目录
 WORKDIR /usr/src
 
-# --- 编译所有依赖 (zlib, pcre2, openssl) ---
-# 在每个 RUN 指令的开头，使用 . /versions.env 来加载版本号
-RUN . /versions.env && \
-    echo "Downloading and compiling zlib ${ZLIB_VERSION}..." && \
-    wget --no-check-certificate http://zlib.net/zlib-${ZLIB_VERSION}.tar.gz && tar -zxvf zlib-${ZLIB_VERSION}.tar.gz && cd zlib-${ZLIB_VERSION} && ./configure --static && make
-
-RUN . /versions.env && \
-    echo "Downloading and compiling pcre2 ${PCRE2_VERSION}..." && \
-    wget --no-check-certificate https://github.com/PCRE2Project/pcre2/releases/download/pcre2-${PCRE2_VERSION}/pcre2-${PCRE2_VERSION}.tar.gz && tar -zxf pcre2-${PCRE2_VERSION}.tar.gz && cd pcre2-${PCRE2_VERSION} && ./configure --disable-shared --enable-static && make
-
-RUN . /versions.env && \
-    echo "Downloading and compiling openssl ${OPENSSL_VERSION}..." && \
-    wget --no-check-certificate https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz && tar -zxvf openssl-${OPENSSL_VERSION}.tar.gz && cd openssl-${OPENSSL_VERSION} && ./config --prefix=/usr/local/ssl --openssldir=/usr/local/ssl no-shared no-threads && make && make install_sw
+# --- 编译所有依赖 (zlib, pcre2, openssl)，确保它们是静态库 ---
+RUN wget --no-check-certificate http://zlib.net/zlib-${ZLIB_VERSION}.tar.gz && tar -zxvf zlib-${ZLIB_VERSION}.tar.gz && cd zlib-${ZLIB_VERSION} && ./configure --static && make
+WORKDIR /usr/src
+RUN wget --no-check-certificate https://github.com/PCRE2Project/pcre2/releases/download/pcre2-${PCRE2_VERSION}/pcre2-${PCRE2_VERSION}.tar.gz && tar -zxf pcre2-${PCRE2_VERSION}.tar.gz && cd pcre2-${PCRE2_VERSION} && ./configure --disable-shared --enable-static && make
+WORKDIR /usr/src
+RUN wget --no-check-certificate https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz && tar -zxvf openssl-${OPENSSL_VERSION}.tar.gz && cd openssl-${OPENSSL_VERSION} && ./config --prefix=/usr/local/ssl --openssldir=/usr/local/ssl no-shared no-threads && make && make install_sw
 
 # --- 编译 Nginx，并将其完全静态链接 ---
-RUN . /versions.env && \
-    echo "Downloading and compiling nginx ${NGINX_VERSION}..." && \
-    wget --no-check-certificate http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz && \
-    tar -zxvf nginx-${NGINX_VERSION}.tar.gz && \
-    cd nginx-${NGINX_VERSION} && \
-    ./configure \
+WORKDIR /usr/src
+RUN wget --no-check-certificate http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz && \
+    tar -zxvf nginx-${NGINX_VERSION}.tar.gz
+WORKDIR /usr/src/nginx-${NGINX_VERSION}
+RUN ./configure \
         --prefix=/etc/nginx \
         --sbin-path=/usr/sbin/nginx \
         --conf-path=/etc/nginx/nginx.conf \
@@ -75,14 +57,14 @@ RUN . /versions.env && \
         --with-ld-opt="-static" && \
     make
 
-# --- 手动创建安装目录并复制文件 ---
+# --- 手动创建安装目录并复制文件，这是最可靠的方式 ---
 RUN mkdir -p /tmp/install/usr/sbin && \
-    cp /usr/src/nginx-*/objs/nginx /tmp/install/usr/sbin/nginx && \
+    cp objs/nginx /tmp/install/usr/sbin/nginx && \
     mkdir -p /tmp/install/etc/nginx/html && \
-    cp /usr/src/nginx-*/conf/nginx.conf /tmp/install/etc/nginx/nginx.conf && \
-    cp /usr/src/nginx-*/conf/mime.types /tmp/install/etc/nginx/mime.types && \
-    cp /usr/src/nginx-*/html/index.html /tmp/install/etc/nginx/html/index.html && \
-    cp /usr/src/nginx-*/html/50x.html /tmp/install/etc/nginx/html/50x.html && \
+    cp conf/nginx.conf /tmp/install/etc/nginx/nginx.conf && \
+    cp conf/mime.types /tmp/install/etc/nginx/mime.types && \
+    cp html/index.html /tmp/install/etc/nginx/html/index.html && \
+    cp html/50x.html /tmp/install/etc/nginx/html/50x.html && \
     echo "nginx:x:101:101:nginx:/var/cache/nginx:/sbin/nologin" > /tmp/install/etc/passwd && \
     echo "nginx:x:101:" > /tmp/install/etc/group && \
     mkdir -p /tmp/install/var/cache/nginx && \
@@ -90,12 +72,13 @@ RUN mkdir -p /tmp/install/usr/sbin && \
     chown -R 101:101 /tmp/install/var/cache/nginx && \
     chown -R 101:101 /tmp/install/var/run
 
-# --- 创建日志目录和符号链接 ---
+# --- 关键修正：创建日志目录和符号链接 ---
 RUN mkdir -p /tmp/install/etc/nginx/logs && \
     ln -sf /dev/stdout /tmp/install/etc/nginx/logs/access.log && \
     ln -sf /dev/stderr /tmp/install/etc/nginx/logs/error.log
  
 # --- 修改配置文件 ---
+# 我们不再需要修改日志路径，只需要修改 worker_processes 和 root 路径
 RUN sed -i \
         -e 's/worker_processes  1;/worker_processes  auto;/' \
         -e 's|root   html;|root   /etc/nginx/html;|g' \
@@ -104,13 +87,25 @@ RUN sed -i \
 
 # =================================================================
 #  第二阶段：最终镜像 (Final Image)
+#  基于 scratch，只包含必要的文件
 # =================================================================
 FROM scratch
 
+# 复制在构建器中准备好的所有文件
 COPY --from=builder /tmp/install/ /
 
+# COPY --from=build /etc/passwd /etc/group /etc/
+
+# 切换到非特权用户
 USER nginx
+
+# 暴露端口
 EXPOSE 80 443
+
+# (最佳实践) 为 Nginx 设置优雅关闭的信号
 STOPSIGNAL SIGQUIT
+
+# (最佳实践) 使用 ENTRYPOINT 定义主命令，CMD 定义默认参数
+# -g 'daemon off;' 指令让 Nginx 在前台运行，这是容器化的标准做法
 ENTRYPOINT ["/usr/sbin/nginx"]
 CMD ["-g", "daemon off;"]
