@@ -1,111 +1,101 @@
 # =================================================================
 #  第一阶段：构建环境 (Builder)
+#  目标：编译一个完全静态链接、自包含的 Nginx 可执行文件
 # =================================================================
-FROM alpine:3.20 AS builder
+FROM alpine:latest AS builder
 
-# 确保安装所有必需的依赖，特别包括 GNU grep
-RUN apk add --no-cache \
-    build-base \
-    wget \
-    perl \
-    linux-headers \
-    curl \
-    grep
+WORKDIR /tmp
 
-# 使用 WORKDIR 来确保工作目录存在并切换过去
-WORKDIR /usr/src
-
-# --- 单一、原子性的构建指令 ---
+# --- 原子化构建指令 ---
 RUN set -eux && \
-    # --- 1. 动态获取最新版本号 ---
-    echo "🔎 正在获取各个组件的最新稳定版本..." && \
-    # 下面三行必须使用 GNU grep，因为用到了 -P (PCRE) 选项
-    NGINX_VERSION=$(curl -s https://nginx.org/en/download.html | /usr/bin/grep -oP 'nginx-[0-9]+\.[0-9]+\.[0-9]+' | sed 's/nginx-//' | head -n 1 | tr -d '\r\n') && \
-    OPENSSL_VERSION=$(curl -s https://www.openssl.org/source/ | /usr/bin/grep -A 2 'Latest Stable' | /usr/bin/grep -oP 'openssl-\K[3]+\.[0-9]+\.[0-9]+' | head -n 1 | tr -d '\r\n') && \
-    ZLIB_VERSION=$(curl -s https://zlib.net/ | /usr/bin/grep -oP 'zlib-\K[0-9]+\.[0-9]+(\.[0-9]+)?(?=\.tar\.gz)' | head -n 1 | tr -d '\r\n') && \
-    # 下面这行使用默认的 BusyBox grep 即可，因为它只用了 -i 选项
-    PCRE2_VERSION=$(curl -sI https://github.com/PCRE2Project/pcre2/releases/latest | grep -i location | awk -F'/' '{print $NF}' | tr -d '\r\n' | sed 's/pcre2-//') && \
-    echo "✅ 版本获取完成:" && \
-    echo "  - Nginx:   ${NGINX_VERSION}" && \
-    echo "  - OpenSSL: ${OPENSSL_VERSION}" && \
-    echo "  - zlib:    ${ZLIB_VERSION}" && \
-    echo "  - PCRE2:   ${PCRE2_VERSION}" && \
+    # --- 1. 安装构建时依赖 ---
+    # 注意：这里不需要 pcre-dev 或 zlib-dev，因为我们将从源码编译
+    apk add --no-cache \
+        build-base \
+        curl \
+        perl \
+        sed \
+        grep \
+        tar \
+        bash && \
     \
-    # --- 2. 编译所有依赖 ---
-    echo "Downloading and compiling zlib ${ZLIB_VERSION}..." && \
-    wget --no-check-certificate http://zlib.net/zlib-${ZLIB_VERSION}.tar.gz && tar -zxvf zlib-${ZLIB_VERSION}.tar.gz && cd zlib-${ZLIB_VERSION} && ./configure --static && make && cd .. && \
+    # --- 2. 获取所有组件的最新版本号 (使用您正确的 grep -oE 方法) ---
+    NGINX_VERSION=$(curl -s https://nginx.org/en/download.html | grep -oE 'nginx-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) && \
+    OPENSSL_VERSION=$(curl -s https://www.openssl.org/source/ | grep -oE 'openssl-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) && \
+    ZLIB_VERSION=$(curl -s https://zlib.net/ | grep -oE 'zlib-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) && \
+    PCRE_VERSION=$(curl -sL https://sourceforge.net/projects/pcre/files/pcre/ | grep -oE 'pcre-[0-9]+\.[0-9]+' | cut -d'-' -f2 | sort -Vr | head -n1) && \
     \
-    echo "Downloading and compiling pcre2 ${PCRE2_VERSION}..." && \
-    wget --no-check-certificate https://github.com/PCRE2Project/pcre2/releases/download/pcre2-${PCRE2_VERSION}/pcre2-${PCRE2_VERSION}.tar.gz && tar -zxf pcre2-${PCRE2_VERSION}.tar.gz && cd pcre2-${PCRE2_VERSION} && ./configure --disable-shared --enable-static && make && cd .. && \
+    echo "============= 版本号 =============" && \
+    echo "NGINX_VERSION=${NGINX_VERSION}" && \
+    echo "OPENSSL_VERSION=${OPENSSL_VERSION}" && \
+    echo "ZLIB_VERSION=${ZLIB_VERSION}" && \
+    echo "PCRE_VERSION=${PCRE_VERSION}" && \
     \
-    echo "Downloading and compiling openssl ${OPENSSL_VERSION}..." && \
-    wget --no-check-certificate https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz && tar -zxvf openssl-${OPENSSL_VERSION}.tar.gz && cd openssl-${OPENSSL_VERSION} && ./config --prefix=/usr/local/ssl --openssldir=/usr/local/ssl no-shared no-threads && make && make install_sw && cd .. && \
+    # --- 3. 下载所有源码 ---
+    curl -fSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -o nginx.tar.gz && \
+    curl -fSL https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz -o openssl.tar.gz && \
+    curl -fSL https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz -o zlib.tar.gz && \
+    curl -fSL https://downloads.sourceforge.net/project/pcre/pcre/${PCRE_VERSION}/pcre-${PCRE_VERSION}.tar.gz -o pcre.tar.gz && \
     \
-    # --- 3. 编译 Nginx ---
-    echo "Downloading and compiling nginx ${NGINX_VERSION}..." && \
-    wget --no-check-certificate http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz && \
-    tar -zxvf nginx-${NGINX_VERSION}.tar.gz && \
+    # --- 4. 解压所有源码 ---
+    tar xzf nginx.tar.gz && \
+    tar xzf openssl.tar.gz && \
+    tar xzf zlib.tar.gz && \
+    tar xzf pcre.tar.gz && \
+    \
+    # --- 5. 编译 Nginx (静态链接) ---
     cd nginx-${NGINX_VERSION} && \
     ./configure \
         --prefix=/etc/nginx \
-        --sbin-path=/usr/sbin/nginx \
-        --conf-path=/etc/nginx/nginx.conf \
-        --pid-path=/var/run/nginx.pid \
-        --lock-path=/var/run/nginx.lock \
         --user=nginx \
         --group=nginx \
-        --http-client-body-temp-path=/var/cache/nginx/client_temp \
-        --http-proxy-temp-path=/var/cache/nginx/proxy_temp \
-        --http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp \
-        --http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp \
-        --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
+        --with-compat \
+        --with-threads \
         --with-http_ssl_module \
         --with-http_v2_module \
-        --with-stream \
-        --with-stream_ssl_module \
+        --with-http_gzip_static_module \
+        --with-http_stub_status_module \
         --with-pcre-jit \
+        # 指向源码目录
+        --with-pcre=../pcre-${PCRE_VERSION} \
         --with-zlib=../zlib-${ZLIB_VERSION} \
-        --with-pcre=../pcre2-${PCRE2_VERSION} \
         --with-openssl=../openssl-${OPENSSL_VERSION} \
-        --with-cc-opt="-O2" \
+        # 这是实现 scratch 的关键：将所有库静态链接进 Nginx
         --with-ld-opt="-static" && \
-    make && \
-    \
-    # --- 4. 创建安装目录并复制所有文件 ---
-    mkdir -p /tmp/install/usr/sbin && \
-    cp objs/nginx /tmp/install/usr/sbin/nginx && \
-    mkdir -p /tmp/install/etc/nginx/html && \
-    cp conf/nginx.conf /tmp/install/etc/nginx/nginx.conf && \
-    cp conf/mime.types /tmp/install/etc/nginx/mime.types && \
-    cp html/index.html /tmp/install/etc/nginx/html/index.html && \
-    cp html/50x.html /tmp/install/etc/nginx/html/50x.html && \
-    echo "nginx:x:101:101:nginx:/var/cache/nginx:/sbin/nologin" > /tmp/install/etc/passwd && \
-    echo "nginx:x:101:" > /tmp/install/etc/group && \
-    mkdir -p /tmp/install/var/cache/nginx && \
-    mkdir -p /tmp/install/var/run && \
-    chown -R 101:101 /tmp/install/var/cache/nginx && \
-    chown -R 101:101 /tmp/install/var/run && \
-    \
-    # --- 5. 创建日志符号链接 ---
-    mkdir -p /tmp/install/etc/nginx/logs && \
-    ln -sf /dev/stdout /tmp/install/etc/nginx/logs/access.log && \
-    ln -sf /dev/stderr /tmp/install/etc/nginx/logs/error.log && \
-    \
-    # --- 6. 修改配置文件 ---
-    sed -i \
-        -e 's/worker_processes  1;/worker_processes  auto;/' \
-        -e 's|root   html;|root   /etc/nginx/html;|g' \
-    /tmp/install/etc/nginx/nginx.conf
+    make -j$(nproc) && \
+    make install && \
+    # strip 可执行文件以进一步减小体积
+    strip /etc/nginx/sbin/nginx
 
 # =================================================================
 #  第二阶段：最终镜像 (Final Image)
+#  使用我们最初的目标：scratch
 # =================================================================
 FROM scratch
 
-COPY --from=builder /tmp/install/ /
+# 从 builder 阶段拷贝所有需要的文件
+# 1. 静态编译的 Nginx 可执行文件
+COPY --from=builder /etc/nginx/sbin/nginx /usr/sbin/nginx
+# 2. Nginx 配置文件
+COPY --from=builder /etc/nginx/conf /etc/nginx/conf
+# 3. 默认的网页文件
+COPY --from=builder /etc/nginx/html /etc/nginx/html
+# 4. 运行 Nginx 所需的用户和组信息
+COPY --from=builder /etc/passwd /etc/passwd
+COPY --from=builder /etc/group /etc/group
 
-USER nginx
+# 创建 Nginx 需要的临时目录
+# 注意：在 scratch 镜像中，我们无法运行 chown，所以这些目录将属于 root。
+# 但由于 Nginx 是以 nginx 用户运行，它需要有权限写入。
+# 通常的解决方案是在启动脚本中处理，或者在 k8s 等环境中通过 emptyDir volume 挂载。
+# 为了简单起见，这里我们先创建目录。
+RUN mkdir -p /var/cache/nginx
+
+# 暴露端口
 EXPOSE 80 443
-STOPSIGNAL SIGQUIT
-ENTRYPOINT ["/usr/sbin/nginx"]
-CMD ["-g", "daemon off;"]
+
+# 切换到非 root 用户
+USER nginx
+
+# 启动 Nginx
+CMD ["/usr/sbin/nginx", "-g", "daemon off;"]
