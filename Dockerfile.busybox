@@ -1,104 +1,110 @@
-# syntax=docker/dockerfile:1
-
+# =================================================================
+#  第一阶段：构建环境 (Builder)
+# =================================================================
 FROM alpine:3.20 AS builder
 
-# 可选手动传参，否则自动抓最新版
-ARG NGINX_VERSION
-ARG OPENSSL_VERSION
-ARG ZLIB_VERSION
-
-WORKDIR /build
-
-# 安装构建依赖
+# (修正) 安装所有必需的依赖，特别包括 GNU grep
 RUN apk add --no-cache \
     build-base \
-    curl \
-    pcre-dev \
-    zlib-dev \
-    linux-headers \
+    wget \
     perl \
-    sed \
-    grep \
-    tar \
-    bash \
-    jq && \
-    NGINX_VERSION=$(wget -q -O - https://nginx.org/en/download.html | grep -oE 'nginx-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
-    && \
-    OPENSSL_VERSION=$(wget -q -O - https://www.openssl.org/source/ | grep -oE 'openssl-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
-    && \
-    ZLIB_VERSION=$(wget -q -O - https://zlib.net/ | grep -oE 'zlib-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
-    && \
-    ZSTD_VERSION=$(curl -Ls https://github.com/facebook/zstd/releases/latest | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -c2-) \
-    && \
-    CORERULESET_VERSION=$(curl -s https://api.github.com/repos/coreruleset/coreruleset/releases/latest | grep -oE '"tag_name": "[^"]+' | cut -d'"' -f4 | sed 's/v//') \
-    && \
-    PCRE_VERSION=$(curl -sL https://sourceforge.net/projects/pcre/files/pcre/ \
-    | grep -oE 'pcre/[0-9]+\.[0-9]+/' \
-    | grep -oE '[0-9]+\.[0-9]+' \
-    | sort -Vr \
-    | head -n1) \
-    && \
+    linux-headers \
+    curl \
+    grep
+
+# 使用 WORKDIR 来确保工作目录存在并切换过去
+WORKDIR /usr/src
+
+# --- 单一、原子性的构建指令 ---
+RUN set -eux && \
+    # --- 1. 动态获取最新版本号 ---
+    echo "🔎 正在获取各个组件的最新稳定版本..." && \
+    NGINX_VERSION=$(curl -s https://nginx.org/en/download.html | grep -oP 'nginx-[0-9]+\.[0-9]+\.[0-9]+' | sed 's/nginx-//' | head -n 1 | tr -d '\r\n') && \
+    OPENSSL_VERSION=$(curl -s https://www.openssl.org/source/ | grep -A 2 'Latest Stable' | grep -oP 'openssl-\K[3]+\.[0-9]+\.[0-9]+' | head -n 1 | tr -d '\r\n') && \
+    ZLIB_VERSION=$(curl -s https://zlib.net/ | grep -oP 'zlib-\K[0-9]+\.[0-9]+(\.[0-9]+)?(?=\.tar\.gz)' | head -n 1 | tr -d '\r\n') && \
+    PCRE2_VERSION=$(curl -sI https://github.com/PCRE2Project/pcre2/releases/latest | grep -i location | awk -F'/' '{print $NF}' | tr -d '\r\n' | sed 's/pcre2-//') && \
+    echo "✅ 版本获取完成:" && \
+    echo "  - Nginx:   ${NGINX_VERSION}" && \
+    echo "  - OpenSSL: ${OPENSSL_VERSION}" && \
+    echo "  - zlib:    ${ZLIB_VERSION}" && \
+    echo "  - PCRE2:   ${PCRE2_VERSION}" && \
     \
-    echo "=============版本号=============" && \
-    echo "NGINX_VERSION=${NGINX_VERSION}" && \
-    echo "OPENSSL_VERSION=${OPENSSL_VERSION}" && \
-    echo "ZLIB_VERSION=${ZLIB_VERSION}" && \
-    echo "ZSTD_VERSION=${ZSTD_VERSION}" && \
-    echo "CORERULESET_VERSION=${CORERULESET_VERSION}" && \
-    echo "PCRE_VERSION=${PCRE_VERSION}" && \
+    # --- 2. 编译所有依赖 ---
+    echo "Downloading and compiling zlib ${ZLIB_VERSION}..." && \
+    wget --no-check-certificate http://zlib.net/zlib-${ZLIB_VERSION}.tar.gz && tar -zxvf zlib-${ZLIB_VERSION}.tar.gz && cd zlib-${ZLIB_VERSION} && ./configure --static && make && cd .. && \
     \
-    # # fallback 以防 curl/grep 失败
-    # NGINX_VERSION="${NGINX_VERSION:-1.29.0}" && \
-    # OPENSSL_VERSION="${OPENSSL_VERSION:-3.3.0}" && \
-    # ZLIB_VERSION="${ZLIB_VERSION:-1.3.1}" && \
-    # ZSTD_VERSION="${ZSTD_VERSION:-1.5.7}" && \
-    # CORERULESET_VERSION="${CORERULESET_VERSION}" && \
-    # \
-    # echo "==> Using versions: nginx-${NGINX_VERSION}, openssl-${OPENSSL_VERSION}, zlib-${ZLIB_VERSION}" && \
-    # \
-    curl -fSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -o nginx.tar.gz && \
-    tar xzf nginx.tar.gz && \
+    echo "Downloading and compiling pcre2 ${PCRE2_VERSION}..." && \
+    wget --no-check-certificate https://github.com/PCRE2Project/pcre2/releases/download/pcre2-${PCRE2_VERSION}/pcre2-${PCRE2_VERSION}.tar.gz && tar -zxf pcre2-${PCRE2_VERSION}.tar.gz && cd pcre2-${PCRE2_VERSION} && ./configure --disable-shared --enable-static && make && cd .. && \
     \
-    curl -fSL https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz -o openssl.tar.gz && \
-    tar xzf openssl.tar.gz && \
+    echo "Downloading and compiling openssl ${OPENSSL_VERSION}..." && \
+    wget --no-check-certificate https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz && tar -zxvf openssl-${OPENSSL_VERSION}.tar.gz && cd openssl-${OPENSSL_VERSION} && ./config --prefix=/usr/local/ssl --openssldir=/usr/local/ssl no-shared no-threads && make && make install_sw && cd .. && \
     \
-    curl -fSL https://fossies.org/linux/misc/zlib-${ZLIB_VERSION}.tar.gz -o zlib.tar.gz && \
-    tar xzf zlib.tar.gz && \
-    \
+    # --- 3. 编译 Nginx ---
+    echo "Downloading and compiling nginx ${NGINX_VERSION}..." && \
+    wget --no-check-certificate http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz && \
+    tar -zxvf nginx-${NGINX_VERSION}.tar.gz && \
     cd nginx-${NGINX_VERSION} && \
     ./configure \
-    --prefix=/etc/nginx \
-    --user=root \
-    --group=root \
-    --with-cc-opt="-static -static-libgcc" \
-    --with-ld-opt="-static" \
-    --with-openssl=../openssl-${OPENSSL_VERSION} \
-    --with-zlib=../zlib-${ZLIB_VERSION} \
-    --with-pcre \
-    --with-pcre-jit \
-    --with-http_ssl_module \
-    --with-http_v2_module \
-    --with-http_gzip_static_module \
-    --with-http_stub_status_module \
-    --without-http_rewrite_module \
-    --without-http_auth_basic_module \
-    --with-threads && \
-    make -j$(nproc) && \
-    make install && \
-    strip /etc/nginx/sbin/nginx
+        --prefix=/etc/nginx \
+        --sbin-path=/usr/sbin/nginx \
+        --conf-path=/etc/nginx/nginx.conf \
+        --pid-path=/var/run/nginx.pid \
+        --lock-path=/var/run/nginx.lock \
+        --user=nginx \
+        --group=nginx \
+        --http-client-body-temp-path=/var/cache/nginx/client_temp \
+        --http-proxy-temp-path=/var/cache/nginx/proxy_temp \
+        --http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp \
+        --http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp \
+        --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
+        --with-http_ssl_module \
+        --with-http_v2_module \
+        --with-stream \
+        --with-stream_ssl_module \
+        --with-pcre-jit \
+        --with-zlib=../zlib-${ZLIB_VERSION} \
+        --with-pcre=../pcre2-${PCRE2_VERSION} \
+        --with-openssl=../openssl-${OPENSSL_VERSION} \
+        --with-cc-opt="-O2" \
+        --with-ld-opt="-static" && \
+    make && \
+    \
+    # --- 4. 创建安装目录并复制所有文件 ---
+    mkdir -p /tmp/install/usr/sbin && \
+    cp objs/nginx /tmp/install/usr/sbin/nginx && \
+    mkdir -p /tmp/install/etc/nginx/html && \
+    cp conf/nginx.conf /tmp/install/etc/nginx/nginx.conf && \
+    cp conf/mime.types /tmp/install/etc/nginx/mime.types && \
+    cp html/index.html /tmp/install/etc/nginx/html/index.html && \
+    cp html/50x.html /tmp/install/etc/nginx/html/50x.html && \
+    echo "nginx:x:101:101:nginx:/var/cache/nginx:/sbin/nologin" > /tmp/install/etc/passwd && \
+    echo "nginx:x:101:" > /tmp/install/etc/group && \
+    mkdir -p /tmp/install/var/cache/nginx && \
+    mkdir -p /tmp/install/var/run && \
+    chown -R 101:101 /tmp/install/var/cache/nginx && \
+    chown -R 101:101 /tmp/install/var/run && \
+    \
+    # --- 5. 创建日志符号链接 ---
+    mkdir -p /tmp/install/etc/nginx/logs && \
+    ln -sf /dev/stdout /tmp/install/etc/nginx/logs/access.log && \
+    ln -sf /dev/stderr /tmp/install/etc/nginx/logs/error.log && \
+    \
+    # --- 6. 修改配置文件 ---
+    sed -i \
+        -e 's/worker_processes  1;/worker_processes  auto;/' \
+        -e 's|root   html;|root   /etc/nginx/html;|g' \
+    /tmp/install/etc/nginx/nginx.conf
 
 
-# 最小运行时镜像
-FROM busybox:1.35-uclibc
-# FROM gcr.io/distroless/static
+# =================================================================
+#  第二阶段：最终镜像 (Final Image)
+# =================================================================
+FROM scratch
 
-# 拷贝构建产物
-COPY --from=builder /etc/nginx /etc/nginx
+COPY --from=builder /tmp/install/ /
 
-# 暴露端口
+USER nginx
 EXPOSE 80 443
-
-WORKDIR /etc/nginx
-
-# 启动 nginx
-CMD ["./sbin/nginx", "-g", "daemon off;"]
+STOPSIGNAL SIGQUIT
+ENTRYPOINT ["/usr/sbin/nginx"]
+CMD ["-g", "daemon off;"]
