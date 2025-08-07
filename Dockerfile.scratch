@@ -61,6 +61,13 @@ RUN ./configure \
         --http-log-path=stdout \
         --user=nginx \
         --group=nginx \
+
+        --http-client-body-temp-path=/var/cache/nginx/client_temp \
+        --http-proxy-temp-path=/var/cache/nginx/proxy_temp \
+        --http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp \
+        --http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp \
+        --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
+
         --with-http_ssl_module \
         --with-http_v2_module \
         --with-stream \
@@ -74,47 +81,38 @@ RUN ./configure \
     make
 
 # 5. 准备最终镜像所需的文件和目录
-# 正确行：使用 DESTDIR 变量来指定一个临时的安装根目录
-RUN make install DESTDIR=/tmp/nginx-install
+RUN make install --prefix=/tmp/nginx-install
  
 # 创建非特权用户和组的文件
-# 注意：路径也要相应地指向 DESTDIR 中的路径
 RUN echo "nginx:x:101:101:nginx:/var/cache/nginx:/sbin/nologin" > /tmp/nginx-install/etc/passwd && \
     echo "nginx:x:101:" > /tmp/nginx-install/etc/group
  
+# --- 关键改动 2：创建 Nginx 运行时所需的目录并赋予正确权限 ---
 # 创建 Nginx 运行时所需的缓存和 PID 目录
-# 同样，在 DESTDIR 中创建
 RUN mkdir -p /tmp/nginx-install/var/cache/nginx && \
     mkdir -p /tmp/nginx-install/var/run && \
-    # 关键：将目录所有权交给 nginx 用户，这样工作进程才有权限写入
+    # 关键：将这些目录的所有权交给 nginx 用户，这样工作进程才有权限写入
     chown -R 101:101 /tmp/nginx-install/var/cache/nginx && \
     chown -R 101:101 /tmp/nginx-install/var/run
  
-# 优化 nginx.conf，使其在容器环境中更友好
-RUN echo "daemon off;" >> /tmp/nginx-install/etc/nginx/nginx.conf && \
-    # 确保 worker_processes 设置为 auto
-    sed -i 's/worker_processes  1;/worker_processes  auto;/' /tmp/nginx-install/etc/nginx/nginx.conf
-
-
+# 优化 nginx.conf
+RUN sed -i 's/worker_processes  1;/worker_processes  auto;/' /tmp/nginx-install/etc/nginx/nginx.conf && \
+    # 在 http 块的末尾追加 daemon off; 指令，确保 Nginx 在前台运行
+    sed -i '/^http {/a \    daemon off;' /tmp/nginx-install/etc/nginx/nginx.conf
+ 
+ 
 # 第二阶段：最终镜像 (基于 scratch)
 FROM scratch
-
+ 
 # 复制在构建器中准备好的所有文件
-# COPY 会保留文件的元数据，包括权限和所有权 (UID/GID)
 COPY --from=builder /tmp/nginx-install/ /
-
+ 
 # 切换到非特权用户
-# 因为我们复制了 /etc/passwd 和 /etc/group，所以系统知道 nginx 对应的 UID/GID
 USER nginx
-
+ 
 # 暴露端口
 EXPOSE 80 443
-
-# 设置健康检查 (可选，但推荐)
-# Nginx 启动需要一点时间，这里设置了启动延迟
-HEALTHCHECK --interval=5s --timeout=3s --start-period=10s \
-  CMD ["/usr/sbin/nginx", "-t"]
-
+ 
 # 启动 Nginx
-# 使用 exec 格式的 CMD，这是最佳实践
-CMD ["/usr/sbin/nginx"]
+# 因为 daemon off; 已经写入配置文件，所以可以直接启动
+CMD ["/usr/sbin/nginx", "-c", "/etc/nginx/nginx.conf"]
