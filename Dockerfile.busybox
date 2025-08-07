@@ -1,110 +1,80 @@
 # =================================================================
-#  第一阶段：构建环境 (Builder)
+# Dockerfile.busybox (使用 BusyBox 作为基础镜像)
 # =================================================================
-FROM alpine:3.20 AS builder
 
-# (修正) 安装所有必需的依赖，特别包括 GNU grep
-RUN apk add --no-cache \
-    build-base \
-    wget \
-    perl \
-    linux-headers \
-    curl \
-    grep
+# --- Stage 1: builder ---
+# builder 阶段和之前的 alpine dynamic build 完全一样
+# 它提供了一个完整的编译环境
+FROM alpine:latest AS builder
 
-# 使用 WORKDIR 来确保工作目录存在并切换过去
-WORKDIR /usr/src
+WORKDIR /tmp
 
-# --- 单一、原子性的构建指令 ---
 RUN set -eux && \
-    # --- 1. 动态获取最新版本号 ---
-    echo "🔎 正在获取各个组件的最新稳定版本..." && \
-    NGINX_VERSION=$(curl -s https://nginx.org/en/download.html | grep -oP 'nginx-[0-9]+\.[0-9]+\.[0-9]+' | sed 's/nginx-//' | head -n 1 | tr -d '\r\n') && \
-    OPENSSL_VERSION=$(curl -s https://www.openssl.org/source/ | grep -A 2 'Latest Stable' | grep -oP 'openssl-\K[3]+\.[0-9]+\.[0-9]+' | head -n 1 | tr -d '\r\n') && \
-    ZLIB_VERSION=$(curl -s https://zlib.net/ | grep -oP 'zlib-\K[0-9]+\.[0-9]+(\.[0-9]+)?(?=\.tar\.gz)' | head -n 1 | tr -d '\r\n') && \
-    PCRE2_VERSION=$(curl -sI https://github.com/PCRE2Project/pcre2/releases/latest | grep -i location | awk -F'/' '{print $NF}' | tr -d '\r\n' | sed 's/pcre2-//') && \
-    echo "✅ 版本获取完成:" && \
-    echo "  - Nginx:   ${NGINX_VERSION}" && \
-    echo "  - OpenSSL: ${OPENSSL_VERSION}" && \
-    echo "  - zlib:    ${ZLIB_VERSION}" && \
-    echo "  - PCRE2:   ${PCRE2_VERSION}" && \
-    \
-    # --- 2. 编译所有依赖 ---
-    echo "Downloading and compiling zlib ${ZLIB_VERSION}..." && \
-    wget --no-check-certificate http://zlib.net/zlib-${ZLIB_VERSION}.tar.gz && tar -zxvf zlib-${ZLIB_VERSION}.tar.gz && cd zlib-${ZLIB_VERSION} && ./configure --static && make && cd .. && \
-    \
-    echo "Downloading and compiling pcre2 ${PCRE2_VERSION}..." && \
-    wget --no-check-certificate https://github.com/PCRE2Project/pcre2/releases/download/pcre2-${PCRE2_VERSION}/pcre2-${PCRE2_VERSION}.tar.gz && tar -zxf pcre2-${PCRE2_VERSION}.tar.gz && cd pcre2-${PCRE2_VERSION} && ./configure --disable-shared --enable-static && make && cd .. && \
-    \
-    echo "Downloading and compiling openssl ${OPENSSL_VERSION}..." && \
-    wget --no-check-certificate https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz && tar -zxvf openssl-${OPENSSL_VERSION}.tar.gz && cd openssl-${OPENSSL_VERSION} && ./config --prefix=/usr/local/ssl --openssldir=/usr/local/ssl no-shared no-threads && make && make install_sw && cd .. && \
-    \
-    # --- 3. 编译 Nginx ---
-    echo "Downloading and compiling nginx ${NGINX_VERSION}..." && \
-    wget --no-check-certificate http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz && \
-    tar -zxvf nginx-${NGINX_VERSION}.tar.gz && \
+    apk add --no-cache \
+    build-base \
+    curl \
+    perl \
+    sed \
+    grep \
+    tar \
+    bash \
+    git \
+    zlib-dev \
+    pcre2-dev \
+    openssl-dev \
+    zstd-dev \
+    linux-headers && \
+    NGINX_VERSION=$(curl -s https://nginx.org/en/download.html | grep -oE 'nginx-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) && \
+    curl -fSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -o nginx.tar.gz && \
+    git clone --depth=1 https://github.com/openresty/echo-nginx-module.git && \
+    tar xzf nginx.tar.gz && \
     cd nginx-${NGINX_VERSION} && \
     ./configure \
         --prefix=/etc/nginx \
         --sbin-path=/usr/sbin/nginx \
-        --conf-path=/etc/nginx/nginx.conf \
-        --pid-path=/var/run/nginx.pid \
-        --lock-path=/var/run/nginx.lock \
-        --user=nginx \
-        --group=nginx \
-        --http-client-body-temp-path=/var/cache/nginx/client_temp \
-        --http-proxy-temp-path=/var/cache/nginx/proxy_temp \
-        --http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp \
-        --http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp \
-        --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
-        --with-http_ssl_module \
-        --with-http_v2_module \
-        --with-stream \
-        --with-stream_ssl_module \
-        --with-pcre-jit \
-        --with-zlib=../zlib-${ZLIB_VERSION} \
-        --with-pcre=../pcre2-${PCRE2_VERSION} \
-        --with-openssl=../openssl-${OPENSSL_VERSION} \
-        --with-cc-opt="-O2" \
-        --with-ld-opt="-static" && \
-    make && \
-    \
-    # --- 4. 创建安装目录并复制所有文件 ---
-    mkdir -p /tmp/install/usr/sbin && \
-    cp objs/nginx /tmp/install/usr/sbin/nginx && \
-    mkdir -p /tmp/install/etc/nginx/html && \
-    cp conf/nginx.conf /tmp/install/etc/nginx/nginx.conf && \
-    cp conf/mime.types /tmp/install/etc/nginx/mime.types && \
-    cp html/index.html /tmp/install/etc/nginx/html/index.html && \
-    cp html/50x.html /tmp/install/etc/nginx/html/50x.html && \
-    echo "nginx:x:101:101:nginx:/var/cache/nginx:/sbin/nologin" > /tmp/install/etc/passwd && \
-    echo "nginx:x:101:" > /tmp/install/etc/group && \
-    mkdir -p /tmp/install/var/cache/nginx && \
-    mkdir -p /tmp/install/var/run && \
-    chown -R 101:101 /tmp/install/var/cache/nginx && \
-    chown -R 101:101 /tmp/install/var/run && \
-    \
-    # --- 5. 创建日志符号链接 ---
-    mkdir -p /tmp/install/etc/nginx/logs && \
-    ln -sf /dev/stdout /tmp/install/etc/nginx/logs/access.log && \
-    ln -sf /dev/stderr /tmp/install/etc/nginx/logs/error.log && \
-    \
-    # --- 6. 修改配置文件 ---
-    sed -i \
-        -e 's/worker_processes  1;/worker_processes  auto;/' \
-        -e 's|root   html;|root   /etc/nginx/html;|g' \
-    /tmp/install/etc/nginx/nginx.conf
+        --modules-path=/etc/nginx/modules \
+        --add-dynamic-module=../echo-nginx-module && \
+    make -j$(nproc) modules && \
+    make -j$(nproc) && \
+    make install
 
+# --- Stage 2: final ---
+### 核心变化: 基础镜像从 alpine 变为 busybox ###
+# 我们选择 busybox:musl 是因为它使用的 C 库 (musl) 与我们 builder (alpine) 使用的相同
+FROM busybox:musl
 
-# =================================================================
-#  第二阶段：最终镜像 (Final Image)
-# =================================================================
-FROM scratch
+LABEL maintainer="bailangvvking"
 
-COPY --from=builder /tmp/install/ /
+# --- 1. 创建用户、组和目录 ---
+# 使用 busybox 提供的命令
+RUN addgroup -S -g 101 nginx && \
+    adduser -S -D -H -u 101 -G nginx nginx && \
+    mkdir -p /var/cache/nginx /var/log/nginx /etc/nginx/modules && \
+    chown -R nginx:nginx /var/cache/nginx /var/log/nginx /etc/nginx
 
-USER nginx
+# --- 2. 复制编译好的文件和所有依赖 ---
+COPY --from=builder /usr/sbin/nginx /usr/sbin/nginx
+COPY --from=builder /etc/nginx/nginx.conf /etc/nginx/nginx.conf
+COPY --from=builder /etc/nginx/mime.types /etc/nginx/mime.types
+COPY --from=builder /etc/nginx/html /etc/nginx/html
+COPY --from=builder /tmp/nginx-*/objs/ngx_http_echo_module.so /etc/nginx/modules/
+
+### 核心痛点: 手动复制所有 .so 依赖 ###
+# 这些依赖是在 builder 阶段通过 ldd /usr/sbin/nginx 命令找到的
+COPY --from=builder /lib/ld-musl-x86_64.so.1 /lib/
+COPY --from=builder /usr/lib/libpcre2-8.so.0 /usr/lib/
+COPY --from=builder /lib/libz.so.1 /lib/
+COPY --from=builder /usr/lib/libssl.so.3 /usr/lib/
+COPY --from=builder /usr/lib/libcrypto.so.3 /usr/lib/
+
+# --- 3. 配置 Nginx 以加载模块 ---
+RUN sed -i '1i load_module modules/ngx_http_echo_module.so;' /etc/nginx/nginx.conf
+
+# 暴露端口
 EXPOSE 80 443
-STOPSIGNAL SIGQUIT
-ENTRYPOINT ["/usr/sbin/nginx"]
-CMD ["-g", "daemon off;"]
+
+# 指定 Nginx 以非 root 用户运行
+USER nginx
+
+# 定义容器启动命令
+CMD ["/usr/sbin/nginx", "-g", "daemon off;"]
