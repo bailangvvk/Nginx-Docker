@@ -12,24 +12,25 @@ RUN apk add --no-cache \
     linux-headers \
     curl
 
+# (修正) 使用 WORKDIR 来确保工作目录存在并切换过去
+WORKDIR /usr/src
+
 # --- 单一、原子性的构建指令 ---
 # 将所有操作合并，确保环境变量在整个过程中有效，并利用 set -eux 保证健壮性
 RUN set -eux && \
-    # --- 1. 动态获取最新版本号 ---
+    # --- 1. 动态获取最新版本号 (修正：增加 tr 清理换行符) ---
     echo "🔎 正在获取各个组件的最新稳定版本..." && \
-    NGINX_VERSION=$(curl -s https://nginx.org/en/download.html | grep -oP 'nginx-[0-9]+\.[0-9]+\.[0-9]+' | sed 's/nginx-//' | head -n 1) && \
-    OPENSSL_VERSION=$(curl -s https://www.openssl.org/source/ | grep -A 2 'Latest Stable' | grep -oP 'openssl-\K[3]+\.[0-9]+\.[0-9]+' | head -n 1) && \
-    ZLIB_VERSION=$(curl -s https://zlib.net/ | grep -oP 'zlib-\K[0-9]+\.[0-9]+(\.[0-9]+)?(?=\.tar\.gz)' | head -n 1) && \
-    PCRE2_VERSION=$(curl -sI https://github.com/PCRE2Project/pcre2/releases/latest | grep -i location | awk -F'/' '{print $NF}' | sed 's/pcre2-//') && \
+    NGINX_VERSION=$(curl -s https://nginx.org/en/download.html | grep -oP 'nginx-[0-9]+\.[0-9]+\.[0-9]+' | sed 's/nginx-//' | head -n 1 | tr -d '\r\n') && \
+    OPENSSL_VERSION=$(curl -s https://www.openssl.org/source/ | grep -A 2 'Latest Stable' | grep -oP 'openssl-\K[3]+\.[0-9]+\.[0-9]+' | head -n 1 | tr -d '\r\n') && \
+    ZLIB_VERSION=$(curl -s https://zlib.net/ | grep -oP 'zlib-\K[0-9]+\.[0-9]+(\.[0-9]+)?(?=\.tar\.gz)' | head -n 1 | tr -d '\r\n') && \
+    PCRE2_VERSION=$(curl -sI https://github.com/PCRE2Project/pcre2/releases/latest | grep -i location | awk -F'/' '{print $NF}' | tr -d '\r\n' | sed 's/pcre2-//') && \
     echo "✅ 版本获取完成:" && \
     echo "  - Nginx:   ${NGINX_VERSION}" && \
     echo "  - OpenSSL: ${OPENSSL_VERSION}" && \
     echo "  - zlib:    ${ZLIB_VERSION}" && \
     echo "  - PCRE2:   ${PCRE2_VERSION}" && \
     \
-    # --- 2. 切换工作目录并编译所有依赖 ---
-    cd /usr/src && \
-    \
+    # --- 2. 编译所有依赖 (注意：我们已经位于 /usr/src) ---
     echo "Downloading and compiling zlib ${ZLIB_VERSION}..." && \
     wget --no-check-certificate http://zlib.net/zlib-${ZLIB_VERSION}.tar.gz && tar -zxvf zlib-${ZLIB_VERSION}.tar.gz && cd zlib-${ZLIB_VERSION} && ./configure --static && make && cd .. && \
     \
@@ -62,9 +63,9 @@ RUN set -eux && \
         --with-stream \
         --with-stream_ssl_module \
         --with-pcre-jit \
-        --with-zlib=/usr/src/zlib-${ZLIB_VERSION} \
-        --with-pcre=/usr/src/pcre2-${PCRE2_VERSION} \
-        --with-openssl=/usr/src/openssl-${OPENSSL_VERSION} \
+        --with-zlib=../zlib-${ZLIB_VERSION} \
+        --with-pcre=../pcre2-${PCRE2_VERSION} \
+        --with-openssl=../openssl-${OPENSSL_VERSION} \
         --with-cc-opt="-O2" \
         --with-ld-opt="-static" && \
     make && \
@@ -98,22 +99,13 @@ RUN set -eux && \
 
 # =================================================================
 #  第二阶段：最终镜像 (Final Image)
-#  基于 scratch，只包含必要的文件
 # =================================================================
 FROM scratch
 
-# 复制在构建器中准备好的所有文件
 COPY --from=builder /tmp/install/ /
 
-# 切换到非特权用户
 USER nginx
-
-# 暴露端口
 EXPOSE 80 443
-
-# (最佳实践) 为 Nginx 设置优雅关闭的信号
 STOPSIGNAL SIGQUIT
-
-# (最佳实践) 使用 ENTRYPOINT 定义主命令，CMD 定义默认参数
 ENTRYPOINT ["/usr/sbin/nginx"]
 CMD ["-g", "daemon off;"]
