@@ -1,20 +1,15 @@
 # =================================================================
-# Dockerfile.scratch (完整修正版)
+# Dockerfile.scratch (运行时修正版)
 # =================================================================
 
 # --- Stage 1: builder ---
-# 使用一个包含完整构建工具链的镜像作为构建环境
 FROM alpine:latest AS builder
 
-# 定义工作目录
 WORKDIR /tmp
 
-# --- 原子化构建指令 ---
-# 将所有操作合并到一个 RUN 指令中，以减小镜像层数
 RUN set -eux && \
     \
-    # --- 1. 安装构建时依赖 ---
-    # 修正：添加 linux-headers 以支持 OpenSSL 从源码编译
+    # --- 1. 安装依赖 ---
     apk add --no-cache \
         build-base \
         curl \
@@ -25,31 +20,25 @@ RUN set -eux && \
         bash \
         linux-headers && \
     \
-    # --- 2. 获取所有组件的最新版本号 ---
+    # --- 2. 获取版本号 ---
     NGINX_VERSION=$(curl -s https://nginx.org/en/download.html | grep -oE 'nginx-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) && \
     OPENSSL_VERSION=$(wget -q -O - https://www.openssl.org/source/ | grep -oE 'openssl-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) && \
     ZLIB_VERSION=$(curl -s https://zlib.net/ | grep -oE 'zlib-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) && \
     PCRE_VERSION=$(curl -sL https://sourceforge.net/projects/pcre/files/pcre/ | grep -oE 'pcre-[0-9]+\.[0-9]+' | cut -d'-' -f2 | sort -Vr | head -n1) && \
     \
-    echo "============= 版本号 =============" && \
-    echo "NGINX_VERSION=${NGINX_VERSION}" && \
-    echo "OPENSSL_VERSION=${OPENSSL_VERSION}" && \
-    echo "ZLIB_VERSION=${ZLIB_VERSION}" && \
-    echo "PCRE_VERSION=${PCRE_VERSION}" && \
-    \
-    # --- 3. 下载所有源码 ---
+    # --- 3. 下载源码 ---
     curl -fSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -o nginx.tar.gz && \
     curl -fSL https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz -o openssl.tar.gz && \
     curl -fSL https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz -o zlib.tar.gz && \
     curl -fSL https://downloads.sourceforge.net/project/pcre/pcre/${PCRE_VERSION}/pcre-${PCRE_VERSION}.tar.gz -o pcre.tar.gz && \
     \
-    # --- 4. 解压所有源码 ---
+    # --- 4. 解压源码 ---
     tar xzf nginx.tar.gz && \
     tar xzf openssl.tar.gz && \
     tar xzf zlib.tar.gz && \
     tar xzf pcre.tar.gz && \
     \
-    # --- 5. 编译 Nginx (静态链接) ---
+    # --- 5. 编译 Nginx ---
     cd nginx-${NGINX_VERSION} && \
     ./configure \
         --prefix=/etc/nginx \
@@ -70,39 +59,39 @@ RUN set -eux && \
     make install && \
     strip /etc/nginx/sbin/nginx && \
     \
-    # --- 6. 创建非 root 用户和组 ---
-    # 我们需要将 passwd 和 group 文件复制到最终镜像中
+    # --- 6. 创建用户和组 ---
     echo "nginx:x:101:101:nginx:/var/cache/nginx:/sbin/nologin" >> /etc/passwd && \
     echo "nginx:x:101:" >> /etc/group && \
     \
-    # --- 7. 【关键修正点】在这里创建最终镜像所需的目录 ---
-    mkdir -p /var/cache/nginx && \
-    chown -R nginx:nginx /var/cache/nginx
+    # --- 7. 【关键修正】创建 Nginx 运行时所需的所有目录 ---
+    mkdir -p \
+      /var/cache/nginx/client_body_temp \
+      /var/cache/nginx/proxy_temp \
+      /var/cache/nginx/fastcgi_temp \
+      /var/cache/nginx/uwsgi_temp \
+      /var/cache/nginx/scgi_temp \
+      /var/log/nginx && \
+    \
+    # --- 8. 【关键修正】为这些目录设置正确的权限 ---
+    chown -R nginx:nginx /var/cache/nginx && \
+    chown -R nginx:nginx /var/log/nginx
 
 
 # --- Stage 2: final ---
-# 使用一个绝对空的镜像作为基础
 FROM scratch
 
-# 作者信息
-LABEL maintainer="Your Name <your.email@example.com>"
+LABEL maintainer="bailangvvking"
 
-# --- 【关键修正点】从 builder 阶段复制所有需要的文件和目录 ---
-# 复制静态编译的 Nginx 二进制文件
-COPY --from=builder /etc/nginx/sbin/nginx /usr/sbin/nginx
-
-# 复制默认配置文件
-COPY --from=builder /etc/nginx/conf /etc/nginx/conf
-
-# 复制默认的欢迎页面
-COPY --from=builder /etc/nginx/html /etc/nginx/html
-
-# 复制用户和组信息，以便 Nginx 可以用指定用户启动
+# 【关键修正】使用 --chown 标志复制文件和目录，确保属主正确
+COPY --from=builder --chown=nginx:nginx /etc/nginx/sbin/nginx /usr/sbin/nginx
+COPY --from=builder --chown=nginx:nginx /etc/nginx/conf /etc/nginx/conf
+COPY --from=builder --chown=nginx:nginx /etc/nginx/html /etc/nginx/html
 COPY --from=builder /etc/passwd /etc/passwd
 COPY --from=builder /etc/group /etc/group
 
-# 【关键修正点】复制在 builder 阶段创建好的缓存目录
-COPY --from=builder /var/cache/nginx /var/cache/nginx
+# 【关键修正】复制所有运行时需要的目录，并保持权限
+COPY --from=builder --chown=nginx:nginx /var/cache/nginx /var/cache/nginx
+COPY --from=builder --chown=nginx:nginx /var/log/nginx /var/log/nginx
 
 # 暴露端口
 EXPOSE 80 443
@@ -110,6 +99,6 @@ EXPOSE 80 443
 # 指定 Nginx 以非 root 用户运行
 USER nginx
 
-# 定义容器启动时执行的命令
-# 使用 exec 格式，这是在 scratch 镜像中必须的
-CMD ["/usr/sbin/nginx", "-g", "daemon off;"]
+# 定义容器启动命令
+# 同时，我们将 Nginx 的 error_log 和 pid 指向我们创建并授权过的目录
+CMD ["/usr/sbin/nginx", "-g", "daemon off; error_log /var/log/nginx/error.log; pid /var/log/nginx/nginx.pid;"]
