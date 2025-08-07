@@ -72,12 +72,15 @@ RUN mkdir -p /tmp/install/usr/sbin && \
     chown -R 101:101 /tmp/install/var/cache/nginx && \
     chown -R 101:101 /tmp/install/var/run
 
+# --- 关键修正：创建日志目录和符号链接 ---
+RUN mkdir -p /tmp/install/etc/nginx/logs && \
+    ln -sf /dev/stdout /tmp/install/etc/nginx/logs/access.log && \
+    ln -sf /dev/stderr /tmp/install/etc/nginx/logs/error.log
+ 
 # --- 修改配置文件 ---
-# 注意：我们不再需要插入 'daemon off;'，因为这将通过 CMD 参数提供
+# 我们不再需要修改日志路径，只需要修改 worker_processes 和 root 路径
 RUN sed -i \
         -e 's/worker_processes  1;/worker_processes  auto;/' \
-        -e 's|access_log  logs/access.log;|access_log /dev/stdout;|g' \
-        -e 's|error_log  logs/error.log;|error_log /dev/stderr;|g' \
         -e 's|root   html;|root   /etc/nginx/html;|g' \
     /tmp/install/etc/nginx/nginx.conf
 
