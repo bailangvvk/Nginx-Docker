@@ -66,7 +66,10 @@ RUN set -eux && \
     make -j$(nproc) && \
     make install && \
     # strip 可执行文件以进一步减小体积
-    strip /etc/nginx/sbin/nginx
+    strip /etc/nginx/sbin/nginx \
+
+    # --- 6. 创建最终镜像需要但默认不存在的目录 ---
+    && mkdir -p /var/cache/nginx
 
 # =================================================================
 #  第二阶段：最终镜像 (Final Image)
@@ -84,6 +87,8 @@ COPY --from=builder /etc/nginx/html /etc/nginx/html
 # 4. 运行 Nginx 所需的用户和组信息
 COPY --from=builder /etc/passwd /etc/passwd
 COPY --from=builder /etc/group /etc/group
+# 修正：使用 COPY 代替 RUN 来创建目录
+COPY --from=builder /var/cache/nginx /var/cache/nginx
 
 # 创建 Nginx 需要的临时目录
 # 注意：在 scratch 镜像中，我们无法运行 chown，所以这些目录将属于 root。
