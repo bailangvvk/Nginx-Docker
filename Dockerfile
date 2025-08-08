@@ -37,7 +37,8 @@ RUN apk add --no-cache \
     echo "ZLIB_VERSION=${ZLIB_VERSION}" && \
     echo "ZSTD_VERSION=${ZSTD_VERSION}" && \
     echo "CORERULESET_VERSION=${CORERULESET_VERSION}" && \
-    echo "PCRE_VERSION=${PCRE_VERSION}" && \
+    # echo "PCRE_VERSION=${PCRE_VERSION}" && \
+    echo "PCRE2_VERSION=${PCRE2_VERSION}" && \
     \
     # # fallback 以防 curl/grep 失败
     # NGINX_VERSION="${NGINX_VERSION:-1.29.0}" && \
