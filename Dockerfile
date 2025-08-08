@@ -8,7 +8,7 @@ WORKDIR /tmp
 RUN apk add --no-cache \
     build-base \
     curl \
-    pcre-dev \
+    # pcre-dev \
     zlib-dev \
     linux-headers \
     perl \
@@ -27,7 +27,8 @@ RUN apk add --no-cache \
     && \
     CORERULESET_VERSION=$(curl -s https://api.github.com/repos/coreruleset/coreruleset/releases/latest | grep -oE '"tag_name": "[^"]+' | cut -d'"' -f4 | sed 's/v//') \
     && \
-    PCRE_VERSION=$(curl -sL https://sourceforge.net/projects/pcre/files/pcre/ | grep -oE 'pcre-[0-9]+\.[0-9]+' | cut -d'-' -f2 | sort -Vr | head -n1) \
+    # PCRE_VERSION=$(curl -sL https://sourceforge.net/projects/pcre/files/pcre/ | grep -oE 'pcre-[0-9]+\.[0-9]+' | cut -d'-' -f2 | sort -Vr | head -n1) \
+    PCRE2_VERSION=$(curl -sL https://github.com/PCRE2Project/pcre2/releases/ | grep -ioE 'pcre2-[0-9]+\.[0-9]+' | grep -v RC | cut -d'-' -f2 | sort -Vr | head -n1) \
     && \
     \
     echo "=============版本号=============" && \
@@ -59,9 +60,12 @@ RUN apk add --no-cache \
     curl -fSL https://downloads.sourceforge.net/project/pcre/pcre/${PCRE_VERSION}/pcre-${PCRE_VERSION}.tar.gz -o pcre.tar.gz && \
     tar xzf pcre.tar.gz && \
     \
+    curl -fSL https://github.com/PCRE2Project/pcre2/releases/download/pcre2-${PCRE2_VERSION}/pcre2-${PCRE2_VERSION}.tar.gz -o pcre2.tar.gz && \
+    tar xzf pcre2.tar.gz && \
+    \
     cd nginx-${NGINX_VERSION} && \
     ./configure \
-    # --prefix=/etc/nginx \
+    --prefix=/etc/nginx \
     --user=root \
     --group=root \
     --with-compat \
@@ -69,8 +73,9 @@ RUN apk add --no-cache \
     # --with-ld-opt="-static" \
     --with-openssl=../openssl-${OPENSSL_VERSION} \
     --with-zlib=../zlib-${ZLIB_VERSION} \
-    --with-pcre \
+    # --with-pcre \
     # --with-pcre=../pcre-${PCRE_VERSION} \
+    --with-pcre=../pcre2-${PCRE2_VERSION} \
     --with-pcre-jit \
     --with-http_ssl_module \
     --with-http_v2_module \
@@ -81,8 +86,7 @@ RUN apk add --no-cache \
     --with-threads && \
     make -j$(nproc) && \
     make install && \
-    # strip /etc/nginx/sbin/nginx
-    strip /usr/local/nginx/sbin/nginx
+    strip /etc/nginx/sbin/nginx
 
 
 # 最小运行时镜像
@@ -94,38 +98,12 @@ FROM alpine:latest
 RUN apk add --no-cache pcre
 
 # 拷贝构建产物
-# COPY --from=builder /etc/nginx /etc/nginx
-
-# 创建 NGINX 目录结构
-RUN mkdir -p \
-    /etc/nginx/{sbin,conf,conf.d,modules} \
-    /var/www/html \
-    /var/log/nginx \
-    /var/cache/nginx/client_body_temp \
-    /var/cache/nginx/fastcgi_temp \
-    /var/cache/nginx/proxy_temp \
-    /var/cache/nginx/scgi_temp \
-    /var/cache/nginx/uwsgi_temp
-
-# —— 核心拷贝 —— #
-# 1) NGINX 可执行
-COPY --from=builder /usr/local/nginx/sbin/nginx               /etc/nginx/sbin/nginx
-# 2) 主配置 (含 nginx.conf、mime.types)
-COPY --from=builder /usr/local/nginx/conf                    /etc/nginx/conf
-# 3) include 目录（conf.d）
-COPY --from=builder /usr/local/nginx/conf/conf.d             /etc/nginx/conf.d
-# # 4) 动态模块（如果有）
-# COPY --from=builder /usr/local/nginx/modules                 /etc/nginx/modules
-# 5) 默认静态页面 -> /var/www/html
-COPY --from=builder /usr/local/nginx/html                     /var/www/html
-# 6) 日志目录模板 -> /var/log/nginx
-#    实际日志由 docker-compose 中的 volume 覆盖
-COPY --from=builder /usr/local/nginx/logs                     /var/log/nginx
+COPY --from=builder /etc/nginx /etc/nginx
 
 # 暴露端口
 EXPOSE 80 443
 
-WORKDIR /usr/local/nginx
+WORKDIR /etc/nginx
 
 # 启动 nginx
-CMD ["/usr/local/nginx/sbin/nginx", "-g", "daemon off;"]
+CMD ["/etc/nginx/sbin/nginx", "-g", "daemon off;"]
