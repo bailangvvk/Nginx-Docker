@@ -10,7 +10,7 @@ RUN set -eux && \
     build-base \
     curl \
     # pcre-dev \
-    zlib-dev \
+    # zlib-dev \
     linux-headers \
     perl \
     sed \
@@ -83,8 +83,8 @@ RUN set -eux && \
     --with-http_v2_module \
     --with-http_gzip_static_module \
     --with-http_stub_status_module \
-    --without-http_rewrite_module \
-    --without-http_auth_basic_module \
+    # --without-http_rewrite_module \
+    # --without-http_auth_basic_module \
     --with-threads && \
     make -j$(nproc) && \
     make install && \
