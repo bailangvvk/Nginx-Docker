@@ -1,5 +1,5 @@
 #
-# 最终版 v4: 采用 FHS 标准目录结构，并融合安全、模块化和 Docker 日志最佳实践
+# 最终版 v5: 采用 DESTDIR 解决循环依赖，最稳健的生产级实践
 #
 FROM alpine:latest AS builder
 
@@ -40,9 +40,7 @@ RUN set -eux && \
     " && \
     # 配置和编译回到 root 用户
     cd "nginx-${NGINX_VERSION}" && \
-    #
-    # <- 核心修改点 1: 使用您指定的 FHS 路径来配置 Nginx ->
-    #
+    # configure 参数保持不变，因为这些路径是 Nginx 运行时需要的
     ./configure \
         --prefix=/etc/nginx \
         --sbin-path=/usr/sbin/nginx \
@@ -73,9 +71,16 @@ RUN set -eux && \
         --add-dynamic-module="../njs-${NJS_VERSION}/nginx" \
     && \
     make -j$(nproc) && \
-    make install && \
-    strip /usr/sbin/nginx && \
-    apk del --no-network .build-deps \
+    #
+    # <- 核心修正 1: 使用 DESTDIR 将安装文件输出到 /staging 暂存目录 ->
+    #
+    make install DESTDIR=/staging && \
+    #
+    strip /staging/usr/sbin/nginx && \
+    #
+    # <- 核心修正 2: 移除行尾多余的 \ 字符，解决 NoEmptyContinuation 警告 ->
+    #
+    apk del --no-network .build-deps
 
 # 最小运行时镜像
 FROM alpine:latest
@@ -84,34 +89,32 @@ FROM alpine:latest
 RUN addgroup -S nginx && adduser -S -G nginx nginx
 
 #
-# <- 核心修改点 2: 从构建器中拷贝分散的文件到最终镜像的对应位置 ->
+# <- 核心修正 3: 从 builder 的 /staging 暂存目录中拷贝文件 ->
 #
-COPY --from=builder /usr/sbin/nginx /usr/sbin/nginx
-COPY --from=builder /etc/nginx /etc/nginx
+COPY --from=builder /staging/usr/sbin/nginx /usr/sbin/nginx
+COPY --from=builder /staging/etc/nginx /etc/nginx
 
-#
-# <- 核心修改点 3: 创建您指定的目录结构和 Nginx 运行时需要的缓存目录 ->
-#
+# 创建您指定的目录结构和 Nginx 运行时需要的缓存目录
 RUN mkdir -p /var/www/html && \
+    mkdir -p /etc/nginx/conf.d && \
     mkdir -p /etc/nginx/certs && \
     mkdir -p /var/cache/nginx && \
-    # 确保日志目录存在
     mkdir -p /var/log/nginx
 
-#
-# <- 核心修改点 4: 针对新的配置文件路径和结构进行修改 ->
-#
+# 针对新的配置文件路径和结构进行修改
 RUN set -eux && \
     # 1. 修改默认的 web root 指向 /var/www/html
     sed -i 's|root   html;|root   /var/www/html;|' /etc/nginx/nginx.conf && \
-    # 2. 注入 Docker 日志、epoll 和哈希桶配置
+    # 2. 确保 include conf.d/*.conf; 是激活的
+    sed -i 's|#include /etc/nginx/conf.d/\*.conf;|include /etc/nginx/conf.d/\*.conf;|' /etc/nginx/nginx.conf && \
+    # 3. 注入 Docker 日志、epoll 和哈希桶配置
     sed -i \
         -e '/events {/a \    use epoll;' \
         -e '/http {/a \    server_names_hash_bucket_size 64;' \
         -e 's|access_log  /var/log/nginx/access.log;|access_log /dev/stdout;|' \
         -e 's|error_log   /var/log/nginx/error.log;|error_log /dev/stderr;|' \
         /etc/nginx/nginx.conf && \
-    # 3. 在顶部加载动态模块
+    # 4. 在顶部加载动态模块
     sed -i \
         -e '1i load_module modules/ngx_http_js_module.so;' \
         -e '1i load_module modules/ngx_http_geoip_module.so;' \
@@ -119,9 +122,7 @@ RUN set -eux && \
         -e '1i load_module modules/ngx_http_xslt_filter_module.so;' \
         /etc/nginx/nginx.conf
 
-#
-# <- 核心修改点 5: 为所有 nginx 需要写入的目录设置权限 ->
-#
+# 为所有 nginx 需要写入的目录设置权限
 RUN chown -R nginx:nginx /etc/nginx /var/log/nginx /var/cache/nginx /var/www/html /var/run
 
 # 暴露端口
@@ -130,7 +131,5 @@ EXPOSE 80 443
 # 切换到非 root 用户启动
 USER nginx
 
-#
-# <- 核心修改点 6: 使用新的二进制文件路径启动 ->
-#
+# 使用新的二进制文件路径启动
 CMD ["/usr/sbin/nginx", "-g", "daemon off;"]
