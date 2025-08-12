@@ -1,4 +1,5 @@
-FROM alpine:3.20 AS builder
+# FROM alpine:3.20 AS builder
+FROM alpine:latest AS builder
 
 WORKDIR /build
 
@@ -85,7 +86,10 @@ RUN set -eux && \
 
 
 # 最小运行时镜像
-FROM busybox:1.35-uclibc
+非常老牌的、为嵌入式系统设计的轻量级 C 库
+# FROM busybox:1.35-uclibc
+这是一个更现代的、同样轻量级的 C 库，以简洁、高效、标准兼容和安全著称。和 Alpine Linux 使用的完全相同的C 库。
+FROM busybox:musl
 # FROM gcr.io/distroless/static
 
 # 拷贝构建产物
