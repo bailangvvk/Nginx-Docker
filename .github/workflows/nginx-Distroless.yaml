@@ -1,4 +1,4 @@
-name: Nginx For Distroless
+name: Nginx For distroless
 on:
   workflow_dispatch:
   # push:
@@ -54,7 +54,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile.Distroless
+          file: ./Dockerfile.distroless
           # platforms: linux/amd64, linux/arm64, linux/riscv64
           # platforms: linux/amd64,linux/arm64
           platforms: linux/amd64
@@ -62,6 +62,6 @@ jobs:
           # tags: |
           #   ${{ env.DOCKER_REPO }}:latest
           #   ${{ env.DOCKER_REPO }}:${{ env.TAG }}
-          tags: ${{ env.DOCKER_REPO }}:Distroless
+          tags: ${{ env.DOCKER_REPO }}:distroless
           build-args: |
               NGINX_VERSION=${{ env.NGINX_VERSION }}
