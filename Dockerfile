@@ -116,10 +116,14 @@ FROM alpine:latest
 # COPY --from=builder /etc/nginx /etc/nginx
 # COPY --from=builder /usr/local/nginx /usr/local/nginx
 # <-- 修改点 3: 拷贝分散的构建产物
-# 拷贝 Nginx 二进制文件
+# 复制所有需要的文件和目录，并确保属主正确
 COPY --from=builder /usr/sbin/nginx /usr/sbin/nginx
-# 拷贝 Nginx 默认配置文件目录
-COPY --from=builder /etc/nginx /etc/nginx
+COPY --from=builder /etc/nginx/nginx.conf /etc/nginx/nginx.conf
+COPY --from=builder /etc/nginx/mime.types /etc/nginx/mime.types
+COPY --from=builder /etc/nginx/html /etc/nginx/html
+COPY --from=builder /var/cache/nginx /var/cache/nginx
+COPY --from=builder /var/log/nginx /var/log/nginx
+
 # <-- 修改点 4: 创建 Nginx 运行时需要的目录
 # Nginx 需要这些目录来写入 pid, logs, 和 cache 文件
 # 必须手动创建，因为它们在运行时才会用到，并且 make install 不会把它们打包到最终镜像
