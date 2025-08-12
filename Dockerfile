@@ -67,9 +67,19 @@ RUN set -eux && \
     \
     cd nginx-${NGINX_VERSION} && \
     ./configure \
-    # --prefix=/etc/nginx \
     --user=root \
     --group=root \
+    # --prefix=/etc/nginx \
+    --sbin-path=/usr/sbin/nginx \
+    --conf-path=/etc/nginx/nginx.conf \
+    --pid-path=/var/log/nginx/nginx.pid \
+    --error-log-path=/var/log/nginx/error.log \
+    --http-log-path=/var/log/nginx/access.log \
+    --http-client-body-temp-path=/var/cache/nginx/client_body_temp \
+    --http-proxy-temp-path=/var/cache/nginx/proxy_temp \
+    --http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp \
+    --http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp \
+    --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
     --with-compat \
     # --with-cc-opt="-static -static-libgcc" \
     # --with-ld-opt="-static" \
@@ -89,7 +99,8 @@ RUN set -eux && \
     make -j$(nproc) && \
     make install && \
     # strip /etc/nginx/sbin/nginx
-    strip /usr/local/nginx/sbin/nginx
+    # strip /usr/local/nginx/sbin/nginx
+    strip /usr/sbin/nginx # <-- 修改点 2: 更新 strip 命令的路径
 
 
 # 最小运行时镜像
@@ -103,14 +114,29 @@ FROM alpine:latest
 
 # 拷贝构建产物
 # COPY --from=builder /etc/nginx /etc/nginx
-COPY --from=builder /usr/local/nginx /usr/local/nginx
+# COPY --from=builder /usr/local/nginx /usr/local/nginx
+# <-- 修改点 3: 拷贝分散的构建产物
+# 拷贝 Nginx 二进制文件
+COPY --from=builder /usr/sbin/nginx /usr/sbin/nginx
+# 拷贝 Nginx 默认配置文件目录
+COPY --from=builder /etc/nginx /etc/nginx
+# <-- 修改点 4: 创建 Nginx 运行时需要的目录
+# Nginx 需要这些目录来写入 pid, logs, 和 cache 文件
+# 必须手动创建，因为它们在运行时才会用到，并且 make install 不会把它们打包到最终镜像
+RUN mkdir -p /var/log/nginx && \
+    mkdir -p /var/cache/nginx
 
 # 暴露端口
 EXPOSE 80 443
 
-# WORKDIR /etc/nginx
-WORKDIR /usr/local/nginx
+# # WORKDIR /etc/nginx
+# WORKDIR /usr/local/nginx
 
-# 启动 nginx
-# CMD ["/etc/nginx/sbin/nginx", "-g", "daemon off;"]
-CMD ["/usr/local/nginx/sbin/nginx", "-g", "daemon off;"]
+# # 启动 nginx
+# # CMD ["/etc/nginx/sbin/nginx", "-g", "daemon off;"]
+# CMD ["/usr/local/nginx/sbin/nginx", "-g", "daemon off;"]
+
+# 设置工作目录 (可选，但 /etc/nginx 是个不错的选择)
+WORKDIR /etc/nginx
+# <-- 修改点 5: 更新 CMD 命令以使用新的二进制文件路径
+CMD ["/usr/sbin/nginx", "-g", "daemon off;"]
