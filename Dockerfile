@@ -97,7 +97,8 @@ RUN set -eux && \
 FROM alpine:latest
 # FROM gcr.io/distroless/static
 
-RUN apk add --no-cache pcre
+# 混合式编译的话就不用了
+# RUN apk add --no-cache pcre
 
 # 拷贝构建产物
 COPY --from=builder /etc/nginx /etc/nginx
