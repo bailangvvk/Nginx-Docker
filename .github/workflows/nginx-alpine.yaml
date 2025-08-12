@@ -60,7 +60,7 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            # ${{ env.DOCKER_REPO }}:latest
+            ${{ env.DOCKER_REPO }}:latest
             # ${{ env.DOCKER_REPO }}:${{ env.TAG }}
             ${{ env.DOCKER_REPO }}:alpine
           # tags: ${{ env.DOCKER_REPO }}:busybox-static
