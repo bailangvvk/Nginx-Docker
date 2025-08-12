@@ -87,7 +87,7 @@ RUN set -eux && \
 # --- Stage 2: final ---
 FROM scratch
 
-LABEL maintainer="bailangvvking"
+# LABEL maintainer="bailangvvking"
 
 # 优先复制用户和组的定义文件
 COPY --from=builder /etc/passwd /etc/passwd
