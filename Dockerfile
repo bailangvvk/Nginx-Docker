@@ -101,7 +101,8 @@ RUN mkdir -p /var/www/html && \
 #
 # <- 核心修改点 4: 针对新的配置文件路径和结构进行修改 ->
 #
-RUN # 1. 修改默认的 web root 指向 /var/www/html
+RUN set -eux && \
+    # 1. 修改默认的 web root 指向 /var/www/html
     sed -i 's|root   html;|root   /var/www/html;|' /etc/nginx/nginx.conf && \
     # 2. 注入 Docker 日志、epoll 和哈希桶配置
     sed -i \
