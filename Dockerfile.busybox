@@ -63,11 +63,22 @@ RUN set -eux && \
     \
     cd nginx-${NGINX_VERSION} && \
     ./configure \
-    --prefix=/etc/nginx \
+    # --prefix=/etc/nginx \
+    --sbin-path=/usr/sbin/nginx \
+    --conf-path=/etc/nginx/nginx.conf \
+    --pid-path=/var/log/nginx/nginx.pid \
+    --error-log-path=/var/log/nginx/error.log \
+    --http-log-path=/var/log/nginx/access.log \
+    --http-client-body-temp-path=/var/cache/nginx/client_body_temp \
+    --http-proxy-temp-path=/var/cache/nginx/proxy_temp \
+    --http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp \
+    --http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp \
+    --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
     --user=root \
     --group=root \
-    --with-cc-opt="-static -static-libgcc" \
-    --with-ld-opt="-static" \
+    # 移除静态编译标志，开启混合编译
+    # --with-cc-opt="-static -static-libgcc" \
+    # --with-ld-opt="-static" \
     --with-openssl=../openssl-${OPENSSL_VERSION} \
     --with-zlib=../zlib-${ZLIB_VERSION} \
     # --with-pcre \
@@ -82,7 +93,13 @@ RUN set -eux && \
     --with-threads && \
     make -j$(nproc) && \
     make install && \
-    strip /etc/nginx/sbin/nginx
+    strip /etc/nginx/sbin/nginx && \
+    \
+    # --- 7. 创建并授权运行时目录 ---
+    mkdir -p /var/cache/nginx && \
+    mkdir -p /var/log/nginx
+    # && chown -R nginx:nginx /var/cache/nginx && \
+    # chown -R nginx:nginx /var/log/nginx
 
 
 # 最小运行时镜像
