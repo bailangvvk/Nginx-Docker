@@ -1,14 +1,14 @@
 #
-# 最终版 v5: 采用 DESTDIR 解决循环依赖，最稳健的生产级实践
+# 最终版 v7: 静态链接所有依赖，生成单一可执行文件
 #
 FROM alpine:latest AS builder
 
-# 使用 /tmp 作为工作目录
 WORKDIR /tmp
 
-# 安装构建依赖
+#
+# <- 核心修正 1: 安装开发库的 .a 静态版本 ->
+#
 RUN set -eux && \
-    # 添加模块所需的额外构建依赖
     apk add --no-cache --virtual .build-deps \
         build-base \
         curl \
@@ -19,9 +19,9 @@ RUN set -eux && \
         tar \
         bash \
         jq \
-        gd-dev \
-        geoip-dev \
-        libxslt-dev && \
+        gd-static \
+        geoip-static \
+        libxslt-static && \
     # 动态获取最新版本号
     NGINX_VERSION=$(wget -q -O - https://nginx.org/en/download.html | grep -oE 'nginx-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) && \
     OPENSSL_VERSION=$(wget -q -O - https://www.openssl.org/source/ | grep -oE 'openssl-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) && \
@@ -29,7 +29,6 @@ RUN set -eux && \
     PCRE2_VERSION=$(curl -sL https://github.com/PCRE2Project/pcre2/releases/ | grep -ioE 'pcre2-[0-9]+\.[0-9]+' | grep -v RC | cut -d'-' -f2 | sort -Vr | head -n1) && \
     NJS_VERSION=$(curl -s https://api.github.com/repos/nginx/njs/releases/latest | grep -oE '"tag_name": "[^"]+' | cut -d'"' -f4) && \
     \
-    # 使用 nobody 用户进行不安全的下载和解压操作
     su nobody -s /bin/sh -c " \
         curl -fSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -o nginx.tar.gz && \
         curl -fSL https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz -o openssl.tar.gz && \
@@ -38,9 +37,10 @@ RUN set -eux && \
         curl -fSL https://github.com/nginx/njs/archive/refs/tags/${NJS_VERSION}.tar.gz -o njs.tar.gz && \
         tar xzf nginx.tar.gz && tar xzf openssl.tar.gz && tar xzf zlib.tar.gz && tar xzf pcre2.tar.gz && tar xzf njs.tar.gz \
     " && \
-    # 配置和编译回到 root 用户
     cd "nginx-${NGINX_VERSION}" && \
-    # configure 参数保持不变，因为这些路径是 Nginx 运行时需要的
+    #
+    # <- 核心修正 2: 移除 =dynamic，将模块静态编译进主程序 ->
+    #
     ./configure \
         --prefix=/etc/nginx \
         --sbin-path=/usr/sbin/nginx \
@@ -65,21 +65,14 @@ RUN set -eux && \
         --with-http_v2_module \
         --with-http_gzip_static_module \
         --with-http_stub_status_module \
-        --with-http_xslt_module=dynamic \
-        --with-http_image_filter_module=dynamic \
-        --with-http_geoip_module=dynamic \
-        --add-dynamic-module="../njs-${NJS_VERSION}/nginx" \
+        --with-http_xslt_module \
+        --with-http_image_filter_module \
+        --with-http_geoip_module \
+        --add-module="../njs-${NJS_VERSION}/nginx" \
     && \
     make -j$(nproc) && \
-    #
-    # <- 核心修正 1: 使用 DESTDIR 将安装文件输出到 /staging 暂存目录 ->
-    #
     make install DESTDIR=/staging && \
-    #
     strip /staging/usr/sbin/nginx && \
-    #
-    # <- 核心修正 2: 移除行尾多余的 \ 字符，解决 NoEmptyContinuation 警告 ->
-    #
     apk del --no-network .build-deps
 
 # 最小运行时镜像
@@ -89,8 +82,10 @@ FROM alpine:latest
 RUN addgroup -S nginx && adduser -S -G nginx nginx
 
 #
-# <- 核心修正 3: 从 builder 的 /staging 暂存目录中拷贝文件 ->
+# <- 核心修正 3: 不再需要安装任何运行时库 ->
 #
+
+# 从 builder 的 /staging 暂存目录中拷贝文件
 COPY --from=builder /staging/usr/sbin/nginx /usr/sbin/nginx
 COPY --from=builder /staging/etc/nginx /etc/nginx
 
@@ -113,14 +108,10 @@ RUN set -eux && \
         -e '/http {/a \    server_names_hash_bucket_size 64;' \
         -e 's|access_log  /var/log/nginx/access.log;|access_log /dev/stdout;|' \
         -e 's|error_log   /var/log/nginx/error.log;|error_log /dev/stderr;|' \
-        /etc/nginx/nginx.conf && \
-    # 4. 在顶部加载动态模块
-    sed -i \
-        -e '1i load_module modules/ngx_http_js_module.so;' \
-        -e '1i load_module modules/ngx_http_geoip_module.so;' \
-        -e '1i load_module modules/ngx_http_image_filter_module.so;' \
-        -e '1i load_module modules/ngx_http_xslt_filter_module.so;' \
         /etc/nginx/nginx.conf
+    #
+    # <- 核心修正 4: 移除所有 load_module 指令，因为它们已内建 ->
+    # (我们直接不添加这些行，而不是添加后再删除)
 
 # 为所有 nginx 需要写入的目录设置权限
 RUN chown -R nginx:nginx /etc/nginx /var/log/nginx /var/cache/nginx /var/www/html /var/run
