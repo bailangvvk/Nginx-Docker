@@ -67,7 +67,7 @@ RUN set -eux && \
     \
     cd nginx-${NGINX_VERSION} && \
     ./configure \
-    # --prefix=/etc/nginx \  <-- 修改点 1: 移除此行，使用默认的 /usr/local/nginx
+    # --prefix=/etc/nginx \
     --user=root \
     --group=root \
     --with-compat \
@@ -89,7 +89,7 @@ RUN set -eux && \
     make -j$(nproc) && \
     make install && \
     # strip /etc/nginx/sbin/nginx
-    strip /usr/local/nginx/sbin/nginx # <-- 修改点 2: 更新 strip 命令的路径
+    strip /usr/local/nginx/sbin/nginx
 
 
 # 最小运行时镜像
@@ -103,14 +103,14 @@ FROM alpine:latest
 
 # 拷贝构建产物
 # COPY --from=builder /etc/nginx /etc/nginx
-COPY --from=builder /usr/local/nginx /usr/local/nginx # <-- 修改点 3: 更新 COPY 命令的源和目标路径
+COPY --from=builder /usr/local/nginx /usr/local/nginx
 
 # 暴露端口
 EXPOSE 80 443
 
 # WORKDIR /etc/nginx
-WORKDIR /usr/local/nginx # <-- 修改点 4: 更新工作目录
+WORKDIR /usr/local/nginx
 
 # 启动 nginx
 # CMD ["/etc/nginx/sbin/nginx", "-g", "daemon off;"]
-CMD ["/usr/local/nginx/sbin/nginx", "-g", "daemon off;"] # <-- 修改点 5: 更新 CMD 命令的路径
+CMD ["/usr/local/nginx/sbin/nginx", "-g", "daemon off;"]
