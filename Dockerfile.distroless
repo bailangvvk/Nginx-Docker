@@ -61,9 +61,11 @@ RUN set -eux && \
 # Stage 2: Final image
 FROM gcr.io/distroless/static
 
-# Copy the statically compiled Nginx binary and default configuration
-COPY --from=builder /etc/nginx/sbin/nginx /
+# Copy the statically compiled Nginx binary and necessary directories
+COPY --from=builder /etc/nginx/sbin/nginx /nginx
 COPY --from=builder /etc/nginx/conf /etc/nginx/conf
+COPY --from=builder /etc/nginx/html /etc/nginx/html
+COPY --from=builder /etc/nginx/logs /etc/nginx/logs
 
 # Expose ports
 EXPOSE 80 443
