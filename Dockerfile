@@ -74,7 +74,8 @@ RUN set -eux && \
     && \
     make -j$(nproc) && \
     make install && \
-    strip /usr/sbin/nginx
+    strip /usr/sbin/nginx && \
+    apk del --no-network .build-deps \
 
 # 最小运行时镜像
 FROM alpine:latest
