@@ -112,18 +112,18 @@ FROM busybox:musl
 # 拷贝构建产物
 # COPY --from=builder /etc/nginx /etc/nginx
 
-# 复制所有需要的文件和目录，并确保属主正确
-COPY --from=builder --chown=nginx:nginx /usr/sbin/nginx /usr/sbin/nginx
-COPY --from=builder --chown=nginx:nginx /etc/nginx/nginx.conf /etc/nginx/nginx.conf
-COPY --from=builder --chown=nginx:nginx /etc/nginx/mime.types /etc/nginx/mime.types
-COPY --from=builder --chown=nginx:nginx /etc/nginx/html /etc/nginx/html
-COPY --from=builder --chown=nginx:nginx /var/cache/nginx /var/cache/nginx
-COPY --from=builder --chown=nginx:nginx /var/log/nginx /var/log/nginx
+# 复制所有需要的文件和目录
+COPY --from=builder /usr/sbin/nginx /usr/sbin/nginx
+COPY --from=builder /etc/nginx/nginx.conf /etc/nginx/nginx.conf
+COPY --from=builder /etc/nginx/mime.types /etc/nginx/mime.types
+COPY --from=builder /etc/nginx/html /etc/nginx/html
+COPY --from=builder /var/cache/nginx /var/cache/nginx
+COPY --from=builder /var/log/nginx /var/log/nginx
 
 # 暴露端口
 EXPOSE 80 443
 
-WORKDIR /etc/nginx
+# WORKDIR /etc/nginx
 
 # 启动 nginx
 CMD ["/usr/sbin/nginx", "-g", "daemon off;"]
