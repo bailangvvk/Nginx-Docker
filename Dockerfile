@@ -19,9 +19,9 @@ RUN set -eux && \
         tar \
         bash \
         jq \
-        gd-static \
-        geoip-static \
-        libxslt-static && \
+        gd-dev \
+        geoip-dev \
+        libxslt-dev && \
     # 动态获取最新版本号
     NGINX_VERSION=$(wget -q -O - https://nginx.org/en/download.html | grep -oE 'nginx-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) && \
     OPENSSL_VERSION=$(wget -q -O - https://www.openssl.org/source/ | grep -oE 'openssl-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) && \
