@@ -19,9 +19,10 @@ RUN set -eux && \
         tar \
         bash \
         jq \
-        gd-dev \
-        geoip-dev \
-        libxslt-dev && \
+        # gd-dev \
+        # geoip-dev \
+        # libxslt-dev \
+        && \
     # 动态获取最新版本号
     NGINX_VERSION=$(wget -q -O - https://nginx.org/en/download.html | grep -oE 'nginx-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) && \
     OPENSSL_VERSION=$(wget -q -O - https://www.openssl.org/source/ | grep -oE 'openssl-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) && \
@@ -64,10 +65,10 @@ RUN set -eux && \
         --with-http_ssl_module \
         --with-http_v2_module \
         --with-http_gzip_static_module \
-        --with-http_stub_status_module \
-        --with-http_xslt_module \
-        --with-http_image_filter_module \
-        --with-http_geoip_module \
+        # --with-http_stub_status_module \
+        # --with-http_xslt_module \
+        # --with-http_image_filter_module \
+        # --with-http_geoip_module \
         --add-module="../njs-${NJS_VERSION}/nginx" \
     && \
     make -j$(nproc) && \
