@@ -62,9 +62,9 @@ RUN set -eux && \
         --with-pcre="../pcre2-${PCRE2_VERSION}" \
         --with-pcre-jit \
         --with-threads \
-        --with-http_ssl_module \
-        --with-http_v2_module \
-        --with-http_gzip_static_module \
+        # --with-http_ssl_module \
+        # --with-http_v2_module \
+        # --with-http_gzip_static_module \
         # --with-http_stub_status_module \
         # --with-http_xslt_module \
         # --with-http_image_filter_module \
