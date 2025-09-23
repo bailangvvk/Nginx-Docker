@@ -19,6 +19,7 @@ RUN set -eux && \
         tar \
         bash \
         jq \
+        libxslt-dev \
         # gd-dev \
         # geoip-dev \
         # libxslt-dev \
