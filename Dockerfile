@@ -81,7 +81,7 @@ RUN set -eux \
     # --- 编译 OpenSSL ---
     # 注意：OpenSSL 的构建步骤可能略有不同，这里是常见模式。
     && cd openssl-${OPENSSL_VERSION} \
-    && ./config \
+    && ./auto/configure \
         --prefix=/usr/local/openssl \
         --openssldir=/etc/ssl \
         # 如果需要其他配置选项，请在此添加
