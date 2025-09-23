@@ -9,125 +9,108 @@ WORKDIR /tmp
 # -u 启用此选项后，当脚本尝试使用一个未定义的变量时，会将其视为一个错误并立即终止执行
 # -x 启用此选项后，脚本在执行每一条命令之前，都会将其（包括参数）打印到标准错误输出
 RUN set -eux \
-    # 自动清理下载的包索引 编译依赖
-    && \
-    apk add --no-cache --virtual .build-deps \
-    build-base \
-    # gcc \
-    # make \
-    curl \
-    # pcre-dev \
-    # zlib-dev \
-    linux-headers \
-    perl \
-    sed \
-    grep \
-    tar \
-    # bash \
-    jq \
-    git \
-    && \
-    # # 根据软件官网获取最新版本
-    # # NGINX_VERSION=$(wget -q -O - https://nginx.org/en/download.html | grep -oE 'nginx-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
-    # # NGINX_VERSION=$(wget -q -O - https://api.github.com/repos/nginx/nginx/releases/latest | grep -oE 'nginx-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
-    # # NGINX_VERSION=$(curl -s https://api.github.com/repos/nginx/nginx/releases/latest | jq -r '.tag_name' | sed -e 's/^release-//' -e 's/^v//')
-    # NGINX_VERSION=$(curl -s https://api.github.com/repos/nginx/nginx/releases/latest | jq -r '.tag_name' | sed 's/[^0-9.]//g') \
-    # && \
-    # # OPENSSL_VERSION=$(wget -q -O - https://www.openssl.org/source/ | grep -oE 'openssl-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
-    # # OPENSSL_VERSION=$(wget -q -O - https://api.github.com/repos/openssl/openssl/releases/latest | grep -oE 'openssl-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
-    # OPENSSL_VERSION=$(wget -q -O - https://api.github.com/repos/openssl/openssl/releases/latest | jq -r '.tag_name' | sed 's/[^0-9.]//g') \
-    # && \
-    # # ZLIB_VERSION=$(wget -q -O - https://zlib.net/ | grep -oE 'zlib-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
-    # ZLIB_VERSION=$(curl -s https://api.github.com/repos/madler/zlib/releases/latest | jq -r '.tag_name' | sed 's/[^0-9.]//g') \
-    # && \
-    # # ZSTD_VERSION=$(curl -Ls https://github.com/facebook/zstd/releases/latest | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -c2-) \
-    # ZSTD_VERSION=$(curl -s https://api.github.com/repos/facebook/zstd/releases/latest | jq -r '.tag_name' | sed 's/[^0-9.]//g') \
-    # && \
-    # # CORERULESET_VERSION=$(curl -s https://api.github.com/repos/coreruleset/coreruleset/releases/latest | grep -oE '"tag_name": "[^"]+' | cut -d'"' -f4 | sed 's/v//') \
-    # CORERULESET_VERSION=$(curl -s https://api.github.com/repos/coreruleset/coreruleset/releases/latest | jq -r '.tag_name' | sed 's/[^0-9.]//g') \
-    # && \
-    # # PCRE_VERSION=$(curl -sL https://sourceforge.net/projects/pcre/files/pcre/ | grep -oE 'pcre-[0-9]+\.[0-9]+' | cut -d'-' -f2 | sort -Vr | head -n1) \
-    # # PCRE2_VERSION=$(curl -sL https://github.com/PCRE2Project/pcre2/releases/ | grep -ioE 'pcre2-[0-9]+\.[0-9]+' | grep -v RC | cut -d'-' -f2 | sort -Vr | head -n1) \
-    # PCRE2_VERSION=$(curl -s https://api.github.com/repos/PCRE2Project/pcre2/releases/latest | jq -r '.tag_name' | sed -e 's/^v//' -e 's/^PCRE2-//') \
-    # && \
-    # \
-    # echo "=============版本号=============" && \
-    # echo "NGINX_VERSION=${NGINX_VERSION}" && \
-    # echo "OPENSSL_VERSION=${OPENSSL_VERSION}" && \
-    # echo "ZLIB_VERSION=${ZLIB_VERSION}" && \
-    # echo "ZSTD_VERSION=${ZSTD_VERSION}" && \
-    # echo "CORERULESET_VERSION=${CORERULESET_VERSION}" && \
-    # # echo "PCRE_VERSION=${PCRE_VERSION}" && \
-    # echo "PCRE2_VERSION=${PCRE2_VERSION}" && \
-    # \
-    # --- Nginx ---
-    NGINX_TAG=$(curl -s https://api.github.com/repos/nginx/nginx/releases/latest | jq -r '.tag_name') \
-    && \
-    NGINX_VERSION=$(echo "$NGINX_TAG" | sed -e 's/^release-//') \
-    && \
-    git clone --depth 1 --branch ${NGINX_TAG} https://github.com/nginx/nginx.git nginx-${NGINX_VERSION} \
-    && \
+    # 安装构建依赖：build-base (包含 gcc, make 等), curl, jq, git, perl, sed, grep, tar
+    && apk add --no-cache --virtual .build-deps \
+        build-base \
+        curl \
+        jq \
+        git \
+        perl \
+        sed \
+        grep \
+        tar \
     \
-    # --- OpenSSL ---
-    OPENSSL_TAG=$(curl -s https://api.github.com/repos/openssl/openssl/releases/latest | jq -r '.tag_name') \
-    && \
-    OPENSSL_VERSION=$(echo "$OPENSSL_TAG" | sed -e 's/^openssl-//') \
-    && \
-    git clone --depth 1 --branch ${OPENSSL_TAG} https://github.com/openssl/openssl.git openssl-${OPENSSL_VERSION} \
-    && \
+    # --- 获取并清理各依赖项的版本标签 ---
+    # Nginx (从 GitHub API 获取最新 tag, 清理前缀)
+    && NGINX_TAG=$(curl -s https://api.github.com/repos/nginx/nginx/releases/latest | jq -r '.tag_name') \
+    && NGINX_VERSION=$(echo "$NGINX_TAG" | sed -e 's/^release-//') \
     \
-    # --- Zlib ---
-    ZLIB_TAG=$(curl -s https://api.github.com/repos/madler/zlib/releases/latest | jq -r '.tag_name') \
+    # OpenSSL (从 GitHub API 获取最新 tag, 清理前缀)
+    && OPENSSL_TAG=$(curl -s https://api.github.com/repos/openssl/openssl/releases/latest | jq -r '.tag_name') \
+    && OPENSSL_VERSION=$(echo "$OPENSSL_TAG" | sed -e 's/^openssl-//') \
+    \
+    # Zlib (从 GitHub API 获取最新 tag, 清理前缀)
+    && ZLIB_TAG=$(curl -s https://api.github.com/repos/madler/zlib/releases/latest | jq -r '.tag_name') \
+    && ZLIB_VERSION=$(echo "$ZLIB_TAG" | sed -e 's/^v//') \
+    \
+    # PCRE2 (从 GitHub API 获取最新 tag, 清理前缀)
+    && PCRE2_TAG=$(curl -s https://api.github.com/repos/PCRE2Project/pcre2/releases/latest | jq -r '.tag_name') \
+    && PCRE2_VERSION=$(echo "$PCRE2_TAG" | sed -e 's/^v//' -e 's/^PCRE2-//') \
+    \
+    # --- 克隆各依赖项的源码 ---
+    # Nginx (注意：Nginx 的 configure 脚本可能不在仓库根目录，需要验证)
+    && git clone --depth 1 --branch ${NGINX_TAG} https://github.com/nginx/nginx.git nginx-${NGINX_VERSION} \
+    # OpenSSL
+    && git clone --depth 1 --branch ${OPENSSL_TAG} https://github.com/openssl/openssl.git openssl-${OPENSSL_VERSION} \
+    # Zlib
+    && git clone --depth 1 --branch ${ZLIB_TAG} https://github.com/madler/zlib.git zlib-${ZLIB_VERSION} \
+    # PCRE2
+    && git clone --depth 1 --branch ${PCRE2_TAG} https://github.com/PCRE2Project/pcre2.git pcre2-${PCRE2_VERSION} \
+    \
+    # --- 编译 Nginx ---
+    # !!! 重要提示：请验证 configure 脚本是否在此目录的根目录。如果不在，需要调整 cd 或 ./configure 的路径。
+    && cd nginx-${NGINX_VERSION} \
+    && ./configure \
+        --user=root \
+        --group=root \
+        --sbin-path=/usr/sbin/nginx \
+        --conf-path=/etc/nginx/nginx.conf \
+        --pid-path=/var/log/nginx/nginx.pid \
+        --error-log-path=/var/log/nginx/error.log \
+        --http-log-path=/var/log/nginx/access.log \
+        --http-client-body-temp-path=/var/cache/nginx/client_body_temp \
+        --http-proxy-temp-path=/var/cache/nginx/proxy_temp \
+        --http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp \
+        --http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp \
+        --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
+        --with-compat \
+        --with-openssl=../openssl-${OPENSSL_VERSION} \
+        --with-zlib=../zlib-${ZLIB_VERSION} \
+        --with-pcre=../pcre2-${PCRE2_VERSION} \
+        --with-pcre-jit \
+        --with-http_ssl_module \
+        --with-http_v2_module \
+        --with-http_gzip_static_module \
+        --with-http_stub_status_module \
+        --with-threads \
+    && make -j$(nproc) \
+    && make install \
+    && strip /usr/sbin/nginx \
     && \
-    ZLIB_VERSION=$(echo "$ZLIB_TAG" | sed -e 's/^v//') \
-    && \
-    git clone --depth 1 --branch ${ZLIB_TAG} https://github.com/madler/zlib.git zlib-${ZLIB_VERSION} \
-    && \
-    # --- PCRE2 ---
-    PCRE2_TAG=$(curl -s https://api.github.com/repos/PCRE2Project/pcre2/releases/latest | jq -r '.tag_name') \
-    && \
-    PCRE2_VERSION=$(echo "$PCRE2_TAG" | sed -e 's/^v//' -e 's/^PCRE2-//') \
-    && \
-    git clone --depth 1 --branch ${PCRE2_TAG} https://github.com/PCRE2Project/pcre2.git pcre2-${PCRE2_VERSION} \
-    && \
-    # 编译步骤
-    cd nginx-${NGINX_VERSION} \
-    && \
-    ./configure \
-    --user=root \
-    --group=root \
-    # --prefix=/etc/nginx \
-    --sbin-path=/usr/sbin/nginx \
-    --conf-path=/etc/nginx/nginx.conf \
-    --pid-path=/var/log/nginx/nginx.pid \
-    --error-log-path=/var/log/nginx/error.log \
-    --http-log-path=/var/log/nginx/access.log \
-    --http-client-body-temp-path=/var/cache/nginx/client_body_temp \
-    --http-proxy-temp-path=/var/cache/nginx/proxy_temp \
-    --http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp \
-    --http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp \
-    --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
-    --with-compat \
-    # --with-cc-opt="-static -static-libgcc" \
-    # --with-ld-opt="-static" \
-    --with-openssl=../openssl-${OPENSSL_VERSION} \
-    --with-zlib=../zlib-${ZLIB_VERSION} \
-    # --with-pcre \
-    # --with-pcre=../pcre-${PCRE_VERSION} \
-    --with-pcre=../pcre2-${PCRE2_VERSION} \
-    --with-pcre-jit \
-    --with-http_ssl_module \
-    --with-http_v2_module \
-    --with-http_gzip_static_module \
-    --with-http_stub_status_module \
-    # --without-http_rewrite_module \
-    # --without-http_auth_basic_module \
-    --with-threads && \
-    make -j$(nproc) && \
-    make install && \
-    # strip /etc/nginx/sbin/nginx
-    # strip /usr/local/nginx/sbin/nginx
-    strip /usr/sbin/nginx
+    # cd .. \
+    # \
+    # # --- 编译 OpenSSL ---
+    # # 注意：OpenSSL 的构建步骤可能略有不同，这里是常见模式。
+    # && cd openssl-${OPENSSL_VERSION} \
+    # && ./config \
+    #     --prefix=/usr/local/openssl \
+    #     --openssldir=/etc/ssl \
+    #     # 如果需要其他配置选项，请在此添加
+    # && make -j$(nproc) \
+    # && make install \
+    # && cd .. \
+    # \
+    # # --- 编译 Zlib ---
+    # # Zlib 的构建步骤通常比较简单。
+    # && cd zlib-${ZLIB_VERSION} \
+    # && ./configure --prefix=/usr/local/zlib \
+    # && make -j$(nproc) \
+    # && make install \
+    # && cd .. \
+    # \
+    # # --- 编译 PCRE2 ---
+    # # PCRE2 的构建步骤与 Nginx 类似。
+    # && cd pcre2-${PCRE2_VERSION} \
+    # && ./configure \
+    #     --prefix=/usr/local/pcre2 \
+    #     --enable-jit \
+    #     --enable-shared \
+    # && make -j$(nproc) \
+    # && make install \
+    # && cd .. \
+    \
+    # --- 清理构建依赖 ---
+    && apk del .build-deps
 
 # 最新版本的Alpine镜像 减少攻击面
 FROM alpine:latest
