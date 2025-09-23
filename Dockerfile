@@ -76,8 +76,40 @@ RUN set -eux \
     && make -j$(nproc) \
     && make install \
     && strip /usr/sbin/nginx \
-    && \
-    apk del .build-deps
+    && cd .. \
+    \
+    # --- 编译 OpenSSL ---
+    # 注意：OpenSSL 的构建步骤可能略有不同，这里是常见模式。
+    && cd openssl-${OPENSSL_VERSION} \
+    && ./config \
+        --prefix=/usr/local/openssl \
+        --openssldir=/etc/ssl \
+        # 如果需要其他配置选项，请在此添加
+    && make -j$(nproc) \
+    && make install \
+    && cd .. \
+    \
+    # --- 编译 Zlib ---
+    # Zlib 的构建步骤通常比较简单。
+    && cd zlib-${ZLIB_VERSION} \
+    && ./configure --prefix=/usr/local/zlib \
+    && make -j$(nproc) \
+    && make install \
+    && cd .. \
+    \
+    # --- 编译 PCRE2 ---
+    # PCRE2 的构建步骤与 Nginx 类似。
+    && cd pcre2-${PCRE2_VERSION} \
+    && ./configure \
+        --prefix=/usr/local/pcre2 \
+        --enable-jit \
+        --enable-shared \
+    && make -j$(nproc) \
+    && make install \
+    && cd .. \
+    \
+    # --- 清理构建依赖 ---
+    && apk del .build-deps
 
 # 最新版本的Alpine镜像 减少攻击面
 FROM alpine:latest
