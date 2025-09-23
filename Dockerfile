@@ -12,9 +12,9 @@ RUN set -eux \
     # 自动清理下载的包索引 编译依赖
     && \
     apk add --no-cache --virtual .build-deps \
-    # build-base \
-    gcc \
-    make \
+    build-base \
+    # gcc \
+    # make \
     curl \
     # pcre-dev \
     # zlib-dev \
