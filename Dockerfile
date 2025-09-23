@@ -1,13 +1,3 @@
-# 最新版本的Alpine镜像 减少攻击面
-FROM alpine:latest AS builder
-
-# 使用内存作为工作路径 加快读写速度
-WORKDIR /tmp
-
-# 安装构建依赖
-# -e 如果任何命令执行失败（即返回非零退出状态码）
-# -u 启用此选项后，当脚本尝试使用一个未定义的变量时，会将其视为一个错误并立即终止执行
-# -x 启用此选项后，脚本在执行每一条命令之前，都会将其（包括参数）打印到标准错误输出
 RUN set -eux \
     # 安装构建依赖：build-base (包含 gcc, make, musl-dev 等), curl, jq, git, perl, sed, grep, tar, linux-headers
     && apk add --no-cache --virtual .build-deps \
@@ -82,6 +72,7 @@ RUN set -eux \
     \
     # --- 编译 OpenSSL ---
     # 注意：OpenSSL 的构建步骤可能略有不同，这里是常见模式。
+    # 如果 ./config 或 make 失败，可能需要调整 OpenSSL 的构建参数或检查 Git 克隆的完整性。
     && cd openssl-${OPENSSL_VERSION} \
     && ./config \
         --prefix=/usr/local/openssl \
@@ -112,32 +103,3 @@ RUN set -eux \
     \
     # --- 清理构建依赖 ---
     && apk del .build-deps
-
-
-# 最新版本的Alpine镜像 减少攻击面
-FROM alpine:latest
-
-# 拷贝 Nginx 二进制文件
-COPY --from=builder /usr/sbin/nginx /usr/sbin/nginx
-# 拷贝 Nginx 默认配置文件目录
-COPY --from=builder /etc/nginx /etc/nginx
-# <-- 修改点 4: 创建 Nginx 运行时需要的目录
-# Nginx 需要这些目录来写入 pid, logs, 和 cache 文件
-# 必须手动创建，因为它们在运行时才会用到，并且 make install 不会把它们打包到最终镜像
-RUN mkdir -p /var/log/nginx && \
-    mkdir -p /var/cache/nginx
-
-# 暴露端口
-EXPOSE 80 443
-
-# # WORKDIR /etc/nginx
-# WORKDIR /usr/local/nginx
-
-# # 启动 nginx
-# # CMD ["/etc/nginx/sbin/nginx", "-g", "daemon off;"]
-# CMD ["/usr/local/nginx/sbin/nginx", "-g", "daemon off;"]
-
-# 设置工作目录 (可选，但 /etc/nginx 是个不错的选择)
-WORKDIR /etc/nginx
-# <-- 修改点 5: 更新 CMD 命令以使用新的二进制文件路径
-CMD ["/usr/sbin/nginx", "-g", "daemon off;"]
