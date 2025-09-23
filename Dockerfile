@@ -67,6 +67,7 @@ RUN set -eux \
         --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
         --with-compat \
         --with-openssl=../openssl-${OPENSSL_VERSION} \
+        --with-openssl-opt=enable-shared \
         --with-zlib=../zlib-${ZLIB_VERSION} \
         --with-pcre=../pcre2-${PCRE2_VERSION} \
         --with-pcre-jit \
