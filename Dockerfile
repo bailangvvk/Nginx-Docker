@@ -19,6 +19,8 @@ RUN set -eux \
         sed \
         grep \
         tar \
+        linux-headers \
+        perl \
     \
     # --- 获取并清理各依赖项的版本标签 ---
     # Nginx (从 GitHub API 获取最新 tag, 清理前缀)
