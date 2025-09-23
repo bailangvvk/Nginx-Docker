@@ -1,13 +1,20 @@
-# FROM alpine:3.20 AS builder
+# 最新版本的Alpine镜像 减少攻击面
 FROM alpine:latest AS builder
 
-# WORKDIR /build
+# 使用内存作为工作路径 加快读写速度
 WORKDIR /tmp
 
 # 安装构建依赖
-RUN set -eux && \
-    apk add --no-cache \
-    build-base \
+# -e 如果任何命令执行失败（即返回非零退出状态码）
+# -u 启用此选项后，当脚本尝试使用一个未定义的变量时，会将其视为一个错误并立即终止执行
+# -x 启用此选项后，脚本在执行每一条命令之前，都会将其（包括参数）打印到标准错误输出
+RUN set -eux \
+    # 自动清理下载的包索引 编译依赖
+    && \
+    apk add --no-cache --virtual .build-deps \
+    # build-base \
+    gcc \
+    make \
     curl \
     # pcre-dev \
     # zlib-dev \
@@ -16,56 +23,76 @@ RUN set -eux && \
     sed \
     grep \
     tar \
-    bash \
-    jq && \
-    NGINX_VERSION=$(wget -q -O - https://nginx.org/en/download.html | grep -oE 'nginx-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
+    # bash \
+    jq \
+    git \
     && \
-    OPENSSL_VERSION=$(wget -q -O - https://www.openssl.org/source/ | grep -oE 'openssl-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
-    && \
-    ZLIB_VERSION=$(wget -q -O - https://zlib.net/ | grep -oE 'zlib-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
-    && \
-    ZSTD_VERSION=$(curl -Ls https://github.com/facebook/zstd/releases/latest | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -c2-) \
-    && \
-    CORERULESET_VERSION=$(curl -s https://api.github.com/repos/coreruleset/coreruleset/releases/latest | grep -oE '"tag_name": "[^"]+' | cut -d'"' -f4 | sed 's/v//') \
-    && \
-    # PCRE_VERSION=$(curl -sL https://sourceforge.net/projects/pcre/files/pcre/ | grep -oE 'pcre-[0-9]+\.[0-9]+' | cut -d'-' -f2 | sort -Vr | head -n1) \
-    PCRE2_VERSION=$(curl -sL https://github.com/PCRE2Project/pcre2/releases/ | grep -ioE 'pcre2-[0-9]+\.[0-9]+' | grep -v RC | cut -d'-' -f2 | sort -Vr | head -n1) \
-    && \
-    \
-    echo "=============版本号=============" && \
-    echo "NGINX_VERSION=${NGINX_VERSION}" && \
-    echo "OPENSSL_VERSION=${OPENSSL_VERSION}" && \
-    echo "ZLIB_VERSION=${ZLIB_VERSION}" && \
-    echo "ZSTD_VERSION=${ZSTD_VERSION}" && \
-    echo "CORERULESET_VERSION=${CORERULESET_VERSION}" && \
-    # echo "PCRE_VERSION=${PCRE_VERSION}" && \
-    echo "PCRE2_VERSION=${PCRE2_VERSION}" && \
-    \
-    # # fallback 以防 curl/grep 失败
-    # NGINX_VERSION="${NGINX_VERSION:-1.29.0}" && \
-    # OPENSSL_VERSION="${OPENSSL_VERSION:-3.3.0}" && \
-    # ZLIB_VERSION="${ZLIB_VERSION:-1.3.1}" && \
-    # ZSTD_VERSION="${ZSTD_VERSION:-1.5.7}" && \
-    # CORERULESET_VERSION="${CORERULESET_VERSION}" && \
+    # # 根据软件官网获取最新版本
+    # # NGINX_VERSION=$(wget -q -O - https://nginx.org/en/download.html | grep -oE 'nginx-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
+    # # NGINX_VERSION=$(wget -q -O - https://api.github.com/repos/nginx/nginx/releases/latest | grep -oE 'nginx-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
+    # # NGINX_VERSION=$(curl -s https://api.github.com/repos/nginx/nginx/releases/latest | jq -r '.tag_name' | sed -e 's/^release-//' -e 's/^v//')
+    # NGINX_VERSION=$(curl -s https://api.github.com/repos/nginx/nginx/releases/latest | jq -r '.tag_name' | sed 's/[^0-9.]//g') \
+    # && \
+    # # OPENSSL_VERSION=$(wget -q -O - https://www.openssl.org/source/ | grep -oE 'openssl-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
+    # # OPENSSL_VERSION=$(wget -q -O - https://api.github.com/repos/openssl/openssl/releases/latest | grep -oE 'openssl-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
+    # OPENSSL_VERSION=$(wget -q -O - https://api.github.com/repos/openssl/openssl/releases/latest | jq -r '.tag_name' | sed 's/[^0-9.]//g') \
+    # && \
+    # # ZLIB_VERSION=$(wget -q -O - https://zlib.net/ | grep -oE 'zlib-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
+    # ZLIB_VERSION=$(curl -s https://api.github.com/repos/madler/zlib/releases/latest | jq -r '.tag_name' | sed 's/[^0-9.]//g') \
+    # && \
+    # # ZSTD_VERSION=$(curl -Ls https://github.com/facebook/zstd/releases/latest | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -c2-) \
+    # ZSTD_VERSION=$(curl -s https://api.github.com/repos/facebook/zstd/releases/latest | jq -r '.tag_name' | sed 's/[^0-9.]//g') \
+    # && \
+    # # CORERULESET_VERSION=$(curl -s https://api.github.com/repos/coreruleset/coreruleset/releases/latest | grep -oE '"tag_name": "[^"]+' | cut -d'"' -f4 | sed 's/v//') \
+    # CORERULESET_VERSION=$(curl -s https://api.github.com/repos/coreruleset/coreruleset/releases/latest | jq -r '.tag_name' | sed 's/[^0-9.]//g') \
+    # && \
+    # # PCRE_VERSION=$(curl -sL https://sourceforge.net/projects/pcre/files/pcre/ | grep -oE 'pcre-[0-9]+\.[0-9]+' | cut -d'-' -f2 | sort -Vr | head -n1) \
+    # # PCRE2_VERSION=$(curl -sL https://github.com/PCRE2Project/pcre2/releases/ | grep -ioE 'pcre2-[0-9]+\.[0-9]+' | grep -v RC | cut -d'-' -f2 | sort -Vr | head -n1) \
+    # PCRE2_VERSION=$(curl -s https://api.github.com/repos/PCRE2Project/pcre2/releases/latest | jq -r '.tag_name' | sed -e 's/^v//' -e 's/^PCRE2-//') \
+    # && \
     # \
-    # echo "==> Using versions: nginx-${NGINX_VERSION}, openssl-${OPENSSL_VERSION}, zlib-${ZLIB_VERSION}" && \
+    # echo "=============版本号=============" && \
+    # echo "NGINX_VERSION=${NGINX_VERSION}" && \
+    # echo "OPENSSL_VERSION=${OPENSSL_VERSION}" && \
+    # echo "ZLIB_VERSION=${ZLIB_VERSION}" && \
+    # echo "ZSTD_VERSION=${ZSTD_VERSION}" && \
+    # echo "CORERULESET_VERSION=${CORERULESET_VERSION}" && \
+    # # echo "PCRE_VERSION=${PCRE_VERSION}" && \
+    # echo "PCRE2_VERSION=${PCRE2_VERSION}" && \
     # \
-    curl -fSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -o nginx.tar.gz && \
-    tar xzf nginx.tar.gz && \
+    # --- Nginx ---
+    NGINX_TAG=$(curl -s https://api.github.com/repos/nginx/nginx/releases/latest | jq -r '.tag_name') \
+    && \
+    NGINX_VERSION=$(echo "$NGINX_TAG" | sed -e 's/^release-//') \
+    && \
+    git clone --depth 1 --branch ${NGINX_TAG} https://github.com/nginx/nginx.git nginx-${NGINX_VERSION} \
+    && \
     \
-    curl -fSL https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz -o openssl.tar.gz && \
-    tar xzf openssl.tar.gz && \
+    # --- OpenSSL ---
+    OPENSSL_TAG=$(curl -s https://api.github.com/repos/openssl/openssl/releases/latest | jq -r '.tag_name') \
+    && \
+    OPENSSL_VERSION=$(echo "$OPENSSL_TAG" | sed -e 's/^openssl-//') \
+    && \
+    git clone --depth 1 --branch ${OPENSSL_TAG} https://github.com/openssl/openssl.git openssl-${OPENSSL_VERSION} \
+    && \
     \
-    curl -fSL https://fossies.org/linux/misc/zlib-${ZLIB_VERSION}.tar.gz -o zlib.tar.gz && \
-    tar xzf zlib.tar.gz && \
-    \
-    # curl -fSL https://downloads.sourceforge.net/project/pcre/pcre/${PCRE_VERSION}/pcre-${PCRE_VERSION}.tar.gz -o pcre.tar.gz && \
-    # tar xzf pcre.tar.gz && \
-    # \
-    curl -fSL https://github.com/PCRE2Project/pcre2/releases/download/pcre2-${PCRE2_VERSION}/pcre2-${PCRE2_VERSION}.tar.gz -o pcre2.tar.gz && \
-    tar xzf pcre2.tar.gz && \
-    \
-    cd nginx-${NGINX_VERSION} && \
+    # --- Zlib ---
+    ZLIB_TAG=$(curl -s https://api.github.com/repos/madler/zlib/releases/latest | jq -r '.tag_name') \
+    && \
+    ZLIB_VERSION=$(echo "$ZLIB_TAG" | sed -e 's/^v//') \
+    && \
+    git clone --depth 1 --branch ${ZLIB_TAG} https://github.com/madler/zlib.git zlib-${ZLIB_VERSION} \
+    && \
+    # --- PCRE2 ---
+    PCRE2_TAG=$(curl -s https://api.github.com/repos/PCRE2Project/pcre2/releases/latest | jq -r '.tag_name') \
+    && \
+    PCRE2_VERSION=$(echo "$PCRE2_TAG" | sed -e 's/^v//' -e 's/^PCRE2-//') \
+    && \
+    git clone --depth 1 --branch ${PCRE2_TAG} https://github.com/PCRE2Project/pcre2.git pcre2-${PCRE2_VERSION} \
+    && \
+    # 编译步骤
+    cd nginx-${NGINX_VERSION} \
+    && \
     ./configure \
     --user=root \
     --group=root \
@@ -100,22 +127,11 @@ RUN set -eux && \
     make install && \
     # strip /etc/nginx/sbin/nginx
     # strip /usr/local/nginx/sbin/nginx
-    strip /usr/sbin/nginx # <-- 修改点 2: 更新 strip 命令的路径
+    strip /usr/sbin/nginx
 
-
-# 最小运行时镜像
-# FROM busybox:1.35-uclibc
-# FROM alpine:3.20
+# 最新版本的Alpine镜像 减少攻击面
 FROM alpine:latest
-# FROM gcr.io/distroless/static
 
-# 混合式编译的话就不用了
-# RUN apk add --no-cache pcre
-
-# 拷贝构建产物
-# COPY --from=builder /etc/nginx /etc/nginx
-# COPY --from=builder /usr/local/nginx /usr/local/nginx
-# <-- 修改点 3: 拷贝分散的构建产物
 # 拷贝 Nginx 二进制文件
 COPY --from=builder /usr/sbin/nginx /usr/sbin/nginx
 # 拷贝 Nginx 默认配置文件目录
