@@ -2,8 +2,11 @@ name: Nginx For Busybox
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches: [ main ]
+  push:
+    branches: [ main ]
+    paths:
+      - 'Dockerfile.busybox'
+      - '.github/workflows/nginx-busybox.yaml'
   # schedule:
   #   - cron: '0 3 * * *' # 每天构建一次（可选）
 
