@@ -5,16 +5,16 @@ ARG VERSION=1.23.3
 
 RUN apk update && \
     apk add --no-cache build-essential \
-        pcre-dev \
-        zlib-dev \
-        openssl-dev \
-        gd-dev \
-        libxml2-dev \
-        libuuid-dev \
         build-base \
-        util-linux-dev \
-        wget \
-        gnupg
+        curl \
+        jq \
+        git \
+        perl \
+        sed \
+        grep \
+        tar \
+        linux-headers \
+        musl-dev \
 
 RUN echo $VERSION
 
