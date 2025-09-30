@@ -11,6 +11,8 @@ RUN apk update && \
         gd-dev \
         libxml2-dev \
         libuuid-dev \
+        build-base \
+        util-linux-dev \
         wget \
         gnupg
 
