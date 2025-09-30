@@ -105,6 +105,9 @@ RUN set -eux && \
     # && chown -R nginx:nginx /var/cache/nginx && \
     # chown -R nginx:nginx /var/log/nginx
 
+RUN ln -sf /dev/stdout /usr/local/nginx/logs/access.log                             && \
+    ln -sf /dev/stderr /usr/local/nginx/logs/error.log
+
 
 # 最小运行时镜像
 # 非常老牌的、为嵌入式系统设计的轻量级 C 库
