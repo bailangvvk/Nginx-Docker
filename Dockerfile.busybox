@@ -81,7 +81,7 @@ RUN set -eux && \
     --user=root \
     --group=root \
     # 移除静态编译标志，开启混合编译
-    --with-ld-opt="-static"
+    --with-ld-opt="-static" \
     # --with-cc-opt="-static -static-libgcc" \
     # --with-ld-opt="-static" \
     --with-openssl=../openssl-${OPENSSL_VERSION} \
