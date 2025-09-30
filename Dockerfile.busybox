@@ -52,7 +52,10 @@ RUN set -eux && \
     curl -fSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -o nginx.tar.gz && \
     tar xzf nginx.tar.gz && \
     \
-    curl -fSL https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz -o openssl.tar.gz && \
+    # 修复官方不按规范存放文件
+    # curl -fSL https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz -o openssl.tar.gz && \
+    FILEURL=$(curl -sSL https://openssl-library.org/source/old/3.6/ | grep '<td><a href=".*\.tar\.gz</a></td>' | sed 's/.*<td><a href="\([^"]*\.tar\.gz\)">.*/\1/') && \
+    curl -fSL ${FILEURL} -o openssl.tar.gz
     tar xzf openssl.tar.gz && \
     \
     curl -fSL https://fossies.org/linux/misc/zlib-${ZLIB_VERSION}.tar.gz -o zlib.tar.gz && \
