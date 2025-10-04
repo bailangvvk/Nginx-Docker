@@ -115,8 +115,8 @@ RUN set -eux && \
     --with-threads && \
     make -j$(nproc) && \
     make install && \
-    # strip /usr/sbin/nginx && \
-    strip /etc/nginx/sbin/nginx && \
+    strip /usr/sbin/nginx && \
+    # strip /etc/nginx/sbin/nginx && \
     \
     # --- 7. 创建并授权运行时目录 ---
     mkdir -p /var/cache/nginx && \
