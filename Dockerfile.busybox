@@ -108,7 +108,7 @@ RUN set -eux && \
     # chown -R nginx:nginx /var/log/nginx
 
 # RUN ln -sf /dev/stdout /usr/local/nginx/logs/access.log                             && \
-    ln -sf /dev/stderr /usr/local/nginx/logs/error.log
+#    ln -sf /dev/stderr /usr/local/nginx/logs/error.log
 
 RUN ln -sf /dev/stdout /etc/nginx/logs/access.log                             && \
     ln -sf /dev/stderr /etc/nginx/logs/error.log
