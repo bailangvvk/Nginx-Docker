@@ -120,6 +120,8 @@ RUN set -eux && \
     \
     # --- 7. 创建并授权运行时目录 ---
     mkdir -p /var/cache/nginx && \
+    mkdir -p /usr/lib/nginx/modules && \
+    mkdir -p /var/run && \
     mkdir -p /var/log/nginx
     # && chown -R nginx:nginx /var/cache/nginx && \
     # chown -R nginx:nginx /var/log/nginx
