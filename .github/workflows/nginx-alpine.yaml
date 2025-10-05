@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'Dockerfile'
+      - 'alpine/Dockerfile'
       - '.github/workflows/nginx-alpine.yaml'
 
   # schedule:
