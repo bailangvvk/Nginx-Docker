@@ -19,10 +19,10 @@ awk -v port="$TARGET_PORT" '{gsub(/listen\s+[0-9]+;/, "listen " port ";")}1' /et
 # 替换原始配置文件
 mv "$CONF_TMP" /etc/nginx/nginx.conf
 
-echo "--> Nginx configuration updated to listen on port $TARGET_PORT. New configuration:"
-echo "--------------------"
-cat /etc/nginx/nginx.conf
-echo "--------------------"
+# echo "--> Nginx configuration updated to listen on port $TARGET_PORT. New configuration:"
+# echo "--------------------"
+# cat /etc/nginx/nginx.conf
+# echo "--------------------"
 
 echo "--> Starting Nginx..."
 # 执行传递给脚本的命令 (例如, nginx -g 'daemon off;')
