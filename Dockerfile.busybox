@@ -98,7 +98,10 @@ RUN set -eux && \
     --user=root \
     --group=root \
     # 移除静态编译标志，开启混合编译
-    --with-ld-opt="-static" \
+    #--with-ld-opt="-static" \
+    # 使用更积极的静态编译和优化选项
+    --with-cc-opt="-O3 -flto -static -static-libgcc" \
+    --with-ld-opt="-flto -static" \
     # --with-cc-opt="-static -static-libgcc" \
     # --with-ld-opt="-static" \
     --with-openssl=../openssl-${OPENSSL_VERSION} \
@@ -159,6 +162,8 @@ COPY --from=builder /var/log/nginx /var/log/nginx
 COPY --from=builder /var/run /var/run
 COPY --from=builder /var/cache /var/cache
 
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # 复制所有需要的文件和目录
 # COPY --from=builder /usr/sbin/nginx /usr/sbin/nginx
