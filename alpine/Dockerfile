@@ -1,5 +1,5 @@
-FROM alpine:3.20 AS builder
-# FROM alpine:latest AS builder
+# FROM alpine:3.20 AS builder
+FROM alpine:latest AS builder
 
 WORKDIR /build
 
@@ -143,8 +143,8 @@ RUN ln -sf /dev/stdout /var/log/nginx/error.log                             && \
 # FROM busybox:1.35-uclibc
 # 这是一个更现代的、同样轻量级的 C 库，以简洁、高效、标准兼容和安全著称。和 Alpine Linux 使用的完全相同的C 库。
 # FROM busybox:musl
-# FROM alpine:latest
-FROM alpine:3.20
+FROM alpine:latest
+# FROM alpine:3.20
 # FROM gcr.io/distroless/static
 
 # 从构建器中找出并复制 nginx 所需的动态链接库
@@ -157,6 +157,7 @@ FROM alpine:3.20
 # 拷贝构建产物
 # COPY --from=builder /etc/nginx /etc/nginx
 
+# 复制所有需要的文件和目录
 COPY --from=builder /etc/nginx /etc/nginx
 COPY --from=builder /usr/sbin/nginx /usr/sbin/nginx
 COPY --from=builder /usr/lib/nginx/modules /usr/lib/nginx/modules
@@ -167,17 +168,8 @@ COPY --from=builder /var/cache /var/cache
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# 复制所有需要的文件和目录
-# COPY --from=builder /usr/sbin/nginx /usr/sbin/nginx
-# COPY --from=builder /etc/nginx/nginx.conf /etc/nginx/nginx.conf
-# COPY --from=builder /etc/nginx/mime.types /etc/nginx/mime.types
-# COPY --from=builder /etc/nginx/html /etc/nginx/html
-# COPY --from=builder /var/cache/nginx /var/cache/nginx
-# COPY --from=builder /var/log/nginx /var/log/nginx
-
 # 暴露端口
-EXPOSE 80 443
-
+EXPOSE 80
 WORKDIR /usr/sbin
 
 # 如果有端口变量则修改
