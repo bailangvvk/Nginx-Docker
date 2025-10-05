@@ -5,7 +5,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'Dockerfile.busybox'
+      - 'busybox/Dockerfile'
       - '.github/workflows/nginx-busybox.yaml'
   # schedule:
   #   - cron: '0 3 * * *' # 每天构建一次（可选）
