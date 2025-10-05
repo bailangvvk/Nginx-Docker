@@ -173,6 +173,8 @@ EXPOSE 80 443
 
 WORKDIR /usr/sbin
 
+# 如果有端口变量则修改
+ENTRYPOINT ["/entrypoint.sh"]
 # 启动 nginx
 # CMD ["/etc/sbin/nginx", "-g", "daemon off;"]
 CMD ["/usr/sbin/nginx", "-g", "daemon off;"]
