@@ -145,16 +145,10 @@ RUN ln -sf /dev/stdout /var/log/nginx/error.log                             && \
 FROM busybox:musl
 # FROM gcr.io/distroless/static
 
-# 从构建器中找出并复制 nginx 所需的动态链接库
-# COPY --from=builder /lib/ld-musl-x86_64.so.1 /lib/
-# COPY --from=builder /lib/libc.musl-x86_64.so.1 /lib/
-# COPY --from=builder /usr/lib/libcrypto.so.3 /usr/lib/
-# COPY --from=builder /lib/libz.so.1 /lib/
-# COPY --from=builder /usr/lib/libpcre2-8.so.0 /usr/lib/
-
 # 拷贝构建产物
 # COPY --from=builder /etc/nginx /etc/nginx
 
+# 复制所有需要的文件和目录
 COPY --from=builder /etc/nginx /etc/nginx
 COPY --from=builder /usr/sbin/nginx /usr/sbin/nginx
 COPY --from=builder /usr/lib/nginx/modules /usr/lib/nginx/modules
@@ -165,16 +159,8 @@ COPY --from=builder /var/cache /var/cache
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# 复制所有需要的文件和目录
-# COPY --from=builder /usr/sbin/nginx /usr/sbin/nginx
-# COPY --from=builder /etc/nginx/nginx.conf /etc/nginx/nginx.conf
-# COPY --from=builder /etc/nginx/mime.types /etc/nginx/mime.types
-# COPY --from=builder /etc/nginx/html /etc/nginx/html
-# COPY --from=builder /var/cache/nginx /var/cache/nginx
-# COPY --from=builder /var/log/nginx /var/log/nginx
-
 # 暴露端口
-EXPOSE 80 443
+EXPOSE 80
 
 WORKDIR /usr/sbin
 
