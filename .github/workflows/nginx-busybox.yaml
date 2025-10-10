@@ -9,6 +9,8 @@ on:
       - '.github/workflows/nginx-busybox.yaml'
   # schedule:
   #   - cron: '0 3 * * *' # 每天构建一次（可选）
+  schedule:
+    - cron: '0 3 * * 1' # 每周一构建一次 (例如，每周一凌晨3点)
 
 env:
   DOCKER_REPO: bailangvvking/nginx
