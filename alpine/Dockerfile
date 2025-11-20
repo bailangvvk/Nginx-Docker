@@ -95,8 +95,8 @@ RUN set -eux && \
     --user=nginx \
     --group=nginx \
 
-    --user=root \
-    --group=root \
+    # --user=root \
+    # --group=root \
     # 移除静态编译标志，开启混合编译
     #--with-ld-opt="-static" \
     # 使用更积极的静态编译和优化选项
