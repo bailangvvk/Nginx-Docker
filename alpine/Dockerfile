@@ -4,7 +4,7 @@ FROM alpine:latest AS builder
 WORKDIR /build
 
 # 安装构建依赖
-RUN set -eux && \
+RUN set -eux --no-cache --virtual .build-deps && \
     apk add --no-cache \
     build-base \
     curl \
@@ -114,10 +114,11 @@ RUN set -eux && \
     mkdir -p /var/cache/nginx && \
     mkdir -p /usr/lib/nginx/modules && \
     mkdir -p /var/run && \
-    mkdir -p /var/log/nginx
+    mkdir -p /var/log/nginx \
     # && chown -R nginx:nginx /var/cache/nginx && \
     # chown -R nginx:nginx /var/log/nginx
-
+    && apk del --purge .build-deps \
+    && rm -rf /var/cache/apk/*
 # RUN ln -sf /dev/stdout /usr/local/nginx/logs/access.log                             && \
 #    ln -sf /dev/stderr /usr/local/nginx/logs/error.log
 
