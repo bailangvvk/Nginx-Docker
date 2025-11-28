@@ -37,20 +37,21 @@ RUN set -eux && \
     echo "PCRE2_VERSION=${PCRE2_VERSION}" && \
     \
     # 使用 git clone 获取源码
-    git clone --depth 1 --branch release-${NGINX_VERSION} https://github.com/nginx/nginx.git nginx-${NGINX_VERSION} && \
+    # git clone --depth 1 --branch release-${NGINX_VERSION} https://github.com/nginx/nginx.git nginx-${NGINX_VERSION} && \
+    git clone --depth 1 https://github.com/nginx/nginx.git nginx-${NGINX_VERSION} && \
     \
-    git clone --depth 1 --branch OpenSSL_${OPENSSL_VERSION//./_} https://github.com/openssl/openssl.git openssl-${OPENSSL_VERSION} && \
+    git clone --depth 1 https://github.com/openssl/openssl.git openssl-${OPENSSL_VERSION} && \
     \
-    git clone --depth 1 --branch v${ZLIB_VERSION} https://github.com/madler/zlib.git zlib-${ZLIB_VERSION} && \
+    git clone --depth 1 https://github.com/madler/zlib.git zlib-${ZLIB_VERSION} && \
     \
-    git clone --depth 1 --branch v${ZSTD_VERSION} https://github.com/facebook/zstd.git zstd-${ZSTD_VERSION} && \
+    git clone --depth 1 https://github.com/facebook/zstd.git zstd-${ZSTD_VERSION} && \
     \
-    git clone --depth 1 --branch v${CORERULESET_VERSION} https://github.com/coreruleset/coreruleset.git coreruleset-${CORERULESET_VERSION} && \
+    git clone --depth 1 https://github.com/coreruleset/coreruleset.git coreruleset-${CORERULESET_VERSION} && \
     \
-    git clone --depth 1 --branch pcre2-${PCRE2_VERSION} https://github.com/PCRE2Project/pcre2.git pcre2-${PCRE2_VERSION} && \
+    git clone --depth 1 https://github.com/PCRE2Project/pcre2.git pcre2-${PCRE2_VERSION} && \
     \
     # 进入 nginx 目录
-    cd nginx-${NGINX_VERSION}/src && \
+    cd nginx-${NGINX_VERSION} && \
     ./configure \
     # --prefix=/etc/nginx \
     # --sbin-path=/usr/sbin/nginx \
@@ -89,10 +90,10 @@ RUN set -eux && \
     --with-ld-opt="-flto -static" \
     # --with-cc-opt="-static -static-libgcc" \
     # --with-ld-opt="-static" \
-    --with-openssl=../../openssl-${OPENSSL_VERSION} \
-    --with-zlib=../../zlib-${ZLIB_VERSION} \
+    --with-openssl=../openssl-${OPENSSL_VERSION} \
+    --with-zlib=../zlib-${ZLIB_VERSION} \
     # --with-pcre \
-    --with-pcre=../../pcre2-${PCRE2_VERSION} \
+    --with-pcre=../pcre2-${PCRE2_VERSION} \
     --with-pcre-jit \
     --with-http_ssl_module \
     --with-http_v2_module \
