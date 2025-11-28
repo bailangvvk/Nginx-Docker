@@ -36,8 +36,9 @@ RUN set -eux && \
     echo "CORERULESET_VERSION=${CORERULESET_VERSION}" && \
     echo "PCRE2_VERSION=${PCRE2_VERSION}" && \
     \
-    # 使用 git clone 获取源码（使用release版本）
-    git clone --depth 1 --branch release-${NGINX_VERSION} https://github.com/nginx/nginx.git nginx-${NGINX_VERSION} && \
+    # 使用 release 压缩包获取源码（包含 configure 脚本）
+    curl -L -o nginx-${NGINX_VERSION}.tar.gz https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz && \
+    tar -xzf nginx-${NGINX_VERSION}.tar.gz && \
     \
     git clone --depth 1 --branch OpenSSL_${OPENSSL_VERSION//./_} https://github.com/openssl/openssl.git openssl-${OPENSSL_VERSION} && \
     \
