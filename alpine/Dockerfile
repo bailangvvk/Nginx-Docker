@@ -73,10 +73,10 @@ RUN set -eux && \
     curl -fSL https://github.com/PCRE2Project/pcre2/releases/download/pcre2-${PCRE2_VERSION}/pcre2-${PCRE2_VERSION}.tar.gz -o pcre2.tar.gz && \
     tar xzf pcre2.tar.gz && \
     \
-    git clone --depth 1 https://github.com/google/ngx_brotli.git && \
-    cd ngx_brotli/deps/brotli && \
-    git clone --depth 1 https://github.com/google/brotli.git && \
-    cd ../../.. && \
+    git clone --depth 1 --recurse-submodules https://github.com/google/ngx_brotli.git && \
+    # cd ngx_brotli/deps/brotli && \
+    # git clone --depth 1 https://github.com/google/brotli.git && \
+    # cd ../../.. && \
     \
     cd nginx-${NGINX_VERSION} && \
     ./configure \
