@@ -1,30 +1,34 @@
 # FROM alpine:3.20 AS builder
 FROM alpine:latest AS builder
 
-WORKDIR /build
+WORKDIR /tmp
 
 # 安装构建依赖
-RUN set -eux && apk add --no-cache --virtual .build-deps \
+RUN set -eux && \
+    apk add --no-cache --virtual .build-deps \
     build-base \
     curl \
+    # pcre-dev \
+    # zlib-dev \
     linux-headers \
     perl \
     sed \
     grep \
     tar \
-    git \
+    # bash \
     jq && \
-    NGINX_VERSION=$(curl -s https://api.github.com/repos/nginx/nginx/tags | jq -r '.[].name' | grep -E '^release-[0-9]+\.[0-9]+\.[0-9]+$' | head -1 | sed 's/release-//') \
+    NGINX_VERSION=$(wget -q -O - https://nginx.org/en/download.html | grep -oE 'nginx-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
     && \
-    OPENSSL_VERSION=$(curl -s https://api.github.com/repos/openssl/openssl/tags | jq -r '.[].name' | grep -E '^openssl-[0-9]+\.[0-9]+\.[0-9]+[a-z]?$' | head -1 | sed 's/openssl-//') \
+    OPENSSL_VERSION=$(wget -q -O - https://www.openssl.org/source/ | grep -oE 'openssl-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
     && \
-    ZLIB_VERSION=$(curl -s https://api.github.com/repos/madler/zlib/tags | jq -r '.[].name' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 | sed 's/^v//') \
+    ZLIB_VERSION=$(wget -q -O - https://zlib.net/ | grep -oE 'zlib-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
     && \
-    ZSTD_VERSION=$(curl -s https://api.github.com/repos/facebook/zstd/releases/latest | jq -r '.tag_name' | sed 's/^v//') \
+    ZSTD_VERSION=$(curl -Ls https://github.com/facebook/zstd/releases/latest | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -c2-) \
     && \
-    CORERULESET_VERSION=$(curl -s https://api.github.com/repos/coreruleset/coreruleset/releases/latest | jq -r '.tag_name' | sed 's/^v//') \
+    CORERULESET_VERSION=$(curl -s https://api.github.com/repos/coreruleset/coreruleset/releases/latest | grep -oE '"tag_name": "[^"]+' | cut -d'"' -f4 | sed 's/v//') \
     && \
-    PCRE2_VERSION=$(curl -s https://api.github.com/repos/PCRE2Project/pcre2/releases/latest | jq -r '.tag_name' | sed 's/^pcre2-//') \
+    # PCRE_VERSION=$(curl -sL https://sourceforge.net/projects/pcre/files/pcre/ | grep -oE 'pcre/[0-9]+\.[0-9]+/' | grep -oE '[0-9]+\.[0-9]+' | sort -Vr | head -n1) \
+    PCRE2_VERSION=$(curl -sL https://github.com/PCRE2Project/pcre2/releases/ | grep -ioE 'pcre2-[0-9]+\.[0-9]+' | grep -v RC | cut -d'-' -f2 | sort -Vr | head -n1) \
     && \
     \
     echo "=============版本号=============" && \
@@ -33,26 +37,34 @@ RUN set -eux && apk add --no-cache --virtual .build-deps \
     echo "ZLIB_VERSION=${ZLIB_VERSION}" && \
     echo "ZSTD_VERSION=${ZSTD_VERSION}" && \
     echo "CORERULESET_VERSION=${CORERULESET_VERSION}" && \
+    # echo "PCRE_VERSION=${PCRE_VERSION}" && \
     echo "PCRE2_VERSION=${PCRE2_VERSION}" && \
     \
-    # 使用 release 压缩包获取源码（包含 configure 脚本）
-    curl -L -o nginx-${NGINX_VERSION}.tar.gz https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz && \
-    tar -xzf nginx-${NGINX_VERSION}.tar.gz && \
+    # # fallback 以防 curl/grep 失败
+    # NGINX_VERSION="${NGINX_VERSION:-1.29.0}" && \
+    # OPENSSL_VERSION="${OPENSSL_VERSION:-3.3.0}" && \
+    # OPENSSL_VERSION="3.4.0" && \
+    # ZLIB_VERSION="${ZLIB_VERSION:-1.3.1}" && \
+    # ZSTD_VERSION="${ZSTD_VERSION:-1.5.7}" && \
+    # CORERULESET_VERSION="${CORERULESET_VERSION}" && \
+    # \
+    # echo "==> Using versions: nginx-${NGINX_VERSION}, openssl-${OPENSSL_VERSION}, zlib-${ZLIB_VERSION}" && \
+    # \
+    curl -fSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -o nginx.tar.gz && \
+    tar xzf nginx.tar.gz && \
     \
-    # git clone --depth 1 https://github.com/openssl/openssl.git openssl-${OPENSSL_VERSION} && \
     # 修复官方不按规范存放文件
     curl -fSL https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz -o openssl.tar.gz && \
+    # FILEURL=$(curl -sSL https://openssl-library.org/source/old/3.6/ | grep '<td><a href=".*\.tar\.gz</a></td>' | sed 's/.*<td><a href="\([^"]*\.tar\.gz\)">.*/\1/') && \
+    # curl -fSL ${FILEURL} -o openssl.tar.gz && \
     tar xzf openssl.tar.gz && \
     \
-    git clone --depth 1 https://github.com/madler/zlib.git zlib-${ZLIB_VERSION} && \
+    curl -fSL https://fossies.org/linux/misc/zlib-${ZLIB_VERSION}.tar.gz -o zlib.tar.gz && \
+    tar xzf zlib.tar.gz && \
     \
-    git clone --depth 1 https://github.com/facebook/zstd.git zstd-${ZSTD_VERSION} && \
+    curl -fSL https://github.com/PCRE2Project/pcre2/releases/download/pcre2-${PCRE2_VERSION}/pcre2-${PCRE2_VERSION}.tar.gz -o pcre2.tar.gz && \
+    tar xzf pcre2.tar.gz && \
     \
-    git clone --depth 1 https://github.com/coreruleset/coreruleset.git coreruleset-${CORERULESET_VERSION} && \
-    \
-    git clone --depth 1 https://github.com/PCRE2Project/pcre2.git pcre2-${PCRE2_VERSION} && \
-    \
-    # 进入 nginx 目录
     cd nginx-${NGINX_VERSION} && \
     ./configure \
     # --prefix=/etc/nginx \
@@ -114,10 +126,11 @@ RUN set -eux && apk add --no-cache --virtual .build-deps \
     mkdir -p /usr/lib/nginx/modules && \
     mkdir -p /var/run && \
     mkdir -p /var/log/nginx \
-    # && chown -R nginx:nginx /var/cache/nginx && \
-    # chown -R nginx:nginx /var/log/nginx
     && apk del --purge .build-deps \
     && rm -rf /var/cache/apk/*
+    # && chown -R nginx:nginx /var/cache/nginx && \
+    # chown -R nginx:nginx /var/log/nginx
+
 # RUN ln -sf /dev/stdout /usr/local/nginx/logs/access.log                             && \
 #    ln -sf /dev/stderr /usr/local/nginx/logs/error.log
 
