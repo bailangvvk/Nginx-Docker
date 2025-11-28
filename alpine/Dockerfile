@@ -40,15 +40,15 @@ RUN set -eux && \
     curl -L -o nginx-${NGINX_VERSION}.tar.gz https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz && \
     tar -xzf nginx-${NGINX_VERSION}.tar.gz && \
     \
-    git clone --depth 1 --branch OpenSSL_${OPENSSL_VERSION//./_} https://github.com/openssl/openssl.git openssl-${OPENSSL_VERSION} && \
+    git clone --depth 1 https://github.com/openssl/openssl.git openssl-${OPENSSL_VERSION} && \
     \
-    git clone --depth 1 --branch v${ZLIB_VERSION} https://github.com/madler/zlib.git zlib-${ZLIB_VERSION} && \
+    git clone --depth 1 https://github.com/madler/zlib.git zlib-${ZLIB_VERSION} && \
     \
-    git clone --depth 1 --branch v${ZSTD_VERSION} https://github.com/facebook/zstd.git zstd-${ZSTD_VERSION} && \
+    git clone --depth 1 https://github.com/facebook/zstd.git zstd-${ZSTD_VERSION} && \
     \
-    git clone --depth 1 --branch v${CORERULESET_VERSION} https://github.com/coreruleset/coreruleset.git coreruleset-${CORERULESET_VERSION} && \
+    git clone --depth 1 https://github.com/coreruleset/coreruleset.git coreruleset-${CORERULESET_VERSION} && \
     \
-    git clone --depth 1 --branch pcre2-${PCRE2_VERSION} https://github.com/PCRE2Project/pcre2.git pcre2-${PCRE2_VERSION} && \
+    git clone --depth 1 https://github.com/PCRE2Project/pcre2.git pcre2-${PCRE2_VERSION} && \
     \
     # 进入 nginx 目录
     cd nginx-${NGINX_VERSION} && \
