@@ -81,7 +81,8 @@ RUN set -eux && \
     cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./installed .. && \
     make -j$(nproc) && \
     make install && \
-    cd ../../.. && \
+    # cd ../../.. && \
+    cd /tmp && \
     # cd ngx_brotli/deps/brotli && \
     # git clone --depth 1 https://github.com/google/brotli.git && \
     # cd ../../.. && \
