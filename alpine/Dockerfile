@@ -18,6 +18,8 @@ RUN set -eux && \
     # bash \
     jq \
     git \
+    cmake \
+    make \
     && \
     NGINX_VERSION=$(wget -q -O - https://nginx.org/en/download.html | grep -oE 'nginx-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
     && \
@@ -74,6 +76,12 @@ RUN set -eux && \
     tar xzf pcre2.tar.gz && \
     \
     git clone --depth 1 --recurse-submodules https://github.com/google/ngx_brotli.git && \
+    cd ngx_brotli/deps/brotli && \
+    mkdir out && cd out && \
+    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./installed .. && \
+    make -j$(nproc) && \
+    make install && \
+    cd ../../.. && \
     # cd ngx_brotli/deps/brotli && \
     # git clone --depth 1 https://github.com/google/brotli.git && \
     # cd ../../.. && \
