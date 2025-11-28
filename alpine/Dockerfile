@@ -4,8 +4,7 @@ FROM alpine:latest AS builder
 WORKDIR /build
 
 # 安装构建依赖
-RUN set -eux --no-cache --virtual .build-deps && \
-    apk add --no-cache \
+RUN set -eux && apk add --no-cache --virtual .build-deps \
     build-base \
     curl \
     linux-headers \
