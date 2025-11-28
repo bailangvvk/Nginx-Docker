@@ -31,6 +31,8 @@ RUN set -eux && \
     PCRE2_VERSION=$(curl -sL https://github.com/PCRE2Project/pcre2/releases/ | grep -ioE 'pcre2-[0-9]+\.[0-9]+' | grep -v RC | cut -d'-' -f2 | sort -Vr | head -n1) \
     && \
     NGX_BROTLI_VERSION=$(curl -sL https://github.com/google/ngx_brotli/releases/ | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -c2-) && \
+    && \
+    BROTLI_VERSION=$(curl -sL https://github.com/google/brotli/releases/ | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -c2-) \
     \
     echo "=============版本号=============" && \
     echo "NGINX_VERSION=${NGINX_VERSION}" && \
@@ -41,6 +43,7 @@ RUN set -eux && \
     # echo "PCRE_VERSION=${PCRE_VERSION}" && \
     echo "PCRE2_VERSION=${PCRE2_VERSION}" && \
     echo "NGX_BROTLI_VERSION=${NGX_BROTLI_VERSION}" && \
+    echo "BROTLI_VERSION=${BROTLI_VERSION}" && \
     \
     # # fallback 以防 curl/grep 失败
     # NGINX_VERSION="${NGINX_VERSION:-1.29.0}" && \
@@ -67,9 +70,9 @@ RUN set -eux && \
     curl -fSL https://github.com/PCRE2Project/pcre2/releases/download/pcre2-${PCRE2_VERSION}/pcre2-${PCRE2_VERSION}.tar.gz -o pcre2.tar.gz && \
     tar xzf pcre2.tar.gz && \
     \
-    git clone https://github.com/google/ngx_brotli.git
-    cd ngx_brotli/deps/brotli
-    git clone git@github.com:google/brotli.git
+    git clone https://github.com/google/ngx_brotli.git && \
+    cd ngx_brotli/deps/brotli && \
+    git clone https://github.com/google/brotli.git && \
     \
     cd nginx-${NGINX_VERSION} && \
     ./configure \
