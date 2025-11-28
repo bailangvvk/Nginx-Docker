@@ -30,6 +30,7 @@ RUN set -eux && \
     # PCRE_VERSION=$(curl -sL https://sourceforge.net/projects/pcre/files/pcre/ | grep -oE 'pcre/[0-9]+\.[0-9]+/' | grep -oE '[0-9]+\.[0-9]+' | sort -Vr | head -n1) \
     PCRE2_VERSION=$(curl -sL https://github.com/PCRE2Project/pcre2/releases/ | grep -ioE 'pcre2-[0-9]+\.[0-9]+' | grep -v RC | cut -d'-' -f2 | sort -Vr | head -n1) \
     && \
+    NGX_BROTLI_VERSION=$(curl -sL https://github.com/google/ngx_brotli/releases/ | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -c2-) && \
     \
     echo "=============版本号=============" && \
     echo "NGINX_VERSION=${NGINX_VERSION}" && \
@@ -39,6 +40,7 @@ RUN set -eux && \
     echo "CORERULESET_VERSION=${CORERULESET_VERSION}" && \
     # echo "PCRE_VERSION=${PCRE_VERSION}" && \
     echo "PCRE2_VERSION=${PCRE2_VERSION}" && \
+    echo "NGX_BROTLI_VERSION=${NGX_BROTLI_VERSION}" && \
     \
     # # fallback 以防 curl/grep 失败
     # NGINX_VERSION="${NGINX_VERSION:-1.29.0}" && \
@@ -65,20 +67,12 @@ RUN set -eux && \
     curl -fSL https://github.com/PCRE2Project/pcre2/releases/download/pcre2-${PCRE2_VERSION}/pcre2-${PCRE2_VERSION}.tar.gz -o pcre2.tar.gz && \
     tar xzf pcre2.tar.gz && \
     \
+    git clone https://github.com/google/ngx_brotli.git
+    cd ngx_brotli/deps/brotli
+    git clone git@github.com:google/brotli.git
+    \
     cd nginx-${NGINX_VERSION} && \
     ./configure \
-    # --prefix=/etc/nginx \
-    # --sbin-path=/usr/sbin/nginx \
-    # --conf-path=/etc/nginx/nginx.conf \
-    # --pid-path=/var/log/nginx/nginx.pid \
-    # --error-log-path=/var/log/nginx/error.log \
-    # --http-log-path=/var/log/nginx/access.log \
-    # --http-client-body-temp-path=/var/cache/nginx/client_body_temp \
-    # --http-proxy-temp-path=/var/cache/nginx/proxy_temp \
-    # --http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp \
-    # --http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp \
-    # --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
-
     --prefix=/etc/nginx \
     --sbin-path=/usr/sbin/nginx \
     --modules-path=/usr/lib/nginx/modules \
@@ -94,7 +88,6 @@ RUN set -eux && \
     --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
     --user=nginx \
     --group=nginx \
-
     # --user=root \
     # --group=root \
     # 移除静态编译标志，开启混合编译
@@ -108,6 +101,7 @@ RUN set -eux && \
     --with-zlib=../zlib-${ZLIB_VERSION} \
     # --with-pcre \
     --with-pcre=../pcre2-${PCRE2_VERSION} \
+    --add-module=../ngx_brotli
     --with-pcre-jit \
     --with-http_ssl_module \
     --with-http_v2_module \
@@ -128,14 +122,7 @@ RUN set -eux && \
     mkdir -p /var/log/nginx \
     && apk del --purge .build-deps \
     && rm -rf /var/cache/apk/*
-    # && chown -R nginx:nginx /var/cache/nginx && \
-    # chown -R nginx:nginx /var/log/nginx
 
-# RUN ln -sf /dev/stdout /usr/local/nginx/logs/access.log                             && \
-#    ln -sf /dev/stderr /usr/local/nginx/logs/error.log
-
-# RUN ln -sf /dev/stdout /etc/nginx/logs/access.log                             && \
-#     ln -sf /dev/stderr /etc/nginx/logs/error.log
 
 RUN ln -sf /dev/stdout /var/log/nginx/error.log                             && \
      ln -sf /dev/stderr /var/log/nginx/error.log
@@ -147,14 +134,6 @@ RUN ln -sf /dev/stdout /var/log/nginx/error.log                             && \
 # FROM busybox:musl
 FROM alpine:latest
 # FROM alpine:3.20
-# FROM gcr.io/distroless/static
-
-# 从构建器中找出并复制 nginx 所需的动态链接库
-# COPY --from=builder /lib/ld-musl-x86_64.so.1 /lib/
-# COPY --from=builder /lib/libc.musl-x86_64.so.1 /lib/
-# COPY --from=builder /usr/lib/libcrypto.so.3 /usr/lib/
-# COPY --from=builder /lib/libz.so.1 /lib/
-# COPY --from=builder /usr/lib/libpcre2-8.so.0 /usr/lib/
 
 # 拷贝构建产物
 # COPY --from=builder /etc/nginx /etc/nginx
