@@ -43,6 +43,7 @@ RUN set -eux && apk add --no-cache --virtual .build-deps \
     # git clone --depth 1 https://github.com/openssl/openssl.git openssl-${OPENSSL_VERSION} && \
     # 修复官方不按规范存放文件
     curl -fSL https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz -o openssl.tar.gz && \
+    tar xzf openssl.tar.gz && \
     \
     git clone --depth 1 https://github.com/madler/zlib.git zlib-${ZLIB_VERSION} && \
     \
