@@ -76,7 +76,7 @@ RUN set -eux && \
     git clone --depth 1 https://github.com/google/ngx_brotli.git && \
     cd ngx_brotli/deps/brotli && \
     git clone --depth 1 https://github.com/google/brotli.git && \
-    cd .. && \
+    cd ../../.. && \
     \
     cd nginx-${NGINX_VERSION} && \
     ./configure \
