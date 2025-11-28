@@ -104,7 +104,7 @@ RUN set -eux && \
     --with-zlib=../zlib-${ZLIB_VERSION} \
     # --with-pcre \
     --with-pcre=../pcre2-${PCRE2_VERSION} \
-    --add-module=../ngx_brotli
+    --add-module=../ngx_brotli \
     --with-pcre-jit \
     --with-http_ssl_module \
     --with-http_v2_module \
