@@ -8,27 +8,24 @@ RUN set -eux && \
     apk add --no-cache \
     build-base \
     curl \
-    # pcre-dev \
-    # zlib-dev \
     linux-headers \
     perl \
     sed \
     grep \
     tar \
-    # bash \
+    git \
     jq && \
-    NGINX_VERSION=$(wget -q -O - https://nginx.org/en/download.html | grep -oE 'nginx-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
+    NGINX_VERSION=$(curl -s https://api.github.com/repos/nginx/nginx/tags | jq -r '.[].name' | grep -E '^release-[0-9]+\.[0-9]+\.[0-9]+$' | head -1 | sed 's/release-//') \
     && \
-    OPENSSL_VERSION=$(wget -q -O - https://www.openssl.org/source/ | grep -oE 'openssl-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
+    OPENSSL_VERSION=$(curl -s https://api.github.com/repos/openssl/openssl/tags | jq -r '.[].name' | grep -E '^openssl-[0-9]+\.[0-9]+\.[0-9]+[a-z]?$' | head -1 | sed 's/openssl-//') \
     && \
-    ZLIB_VERSION=$(wget -q -O - https://zlib.net/ | grep -oE 'zlib-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d'-' -f2) \
+    ZLIB_VERSION=$(curl -s https://api.github.com/repos/madler/zlib/tags | jq -r '.[].name' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 | sed 's/^v//') \
     && \
-    ZSTD_VERSION=$(curl -Ls https://github.com/facebook/zstd/releases/latest | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -c2-) \
+    ZSTD_VERSION=$(curl -s https://api.github.com/repos/facebook/zstd/releases/latest | jq -r '.tag_name' | sed 's/^v//') \
     && \
-    CORERULESET_VERSION=$(curl -s https://api.github.com/repos/coreruleset/coreruleset/releases/latest | grep -oE '"tag_name": "[^"]+' | cut -d'"' -f4 | sed 's/v//') \
+    CORERULESET_VERSION=$(curl -s https://api.github.com/repos/coreruleset/coreruleset/releases/latest | jq -r '.tag_name' | sed 's/^v//') \
     && \
-    # PCRE_VERSION=$(curl -sL https://sourceforge.net/projects/pcre/files/pcre/ | grep -oE 'pcre/[0-9]+\.[0-9]+/' | grep -oE '[0-9]+\.[0-9]+' | sort -Vr | head -n1) \
-    PCRE2_VERSION=$(curl -sL https://github.com/PCRE2Project/pcre2/releases/ | grep -ioE 'pcre2-[0-9]+\.[0-9]+' | grep -v RC | cut -d'-' -f2 | sort -Vr | head -n1) \
+    PCRE2_VERSION=$(curl -s https://api.github.com/repos/PCRE2Project/pcre2/releases/latest | jq -r '.tag_name' | sed 's/^pcre2-//') \
     && \
     \
     echo "=============版本号=============" && \
@@ -37,35 +34,23 @@ RUN set -eux && \
     echo "ZLIB_VERSION=${ZLIB_VERSION}" && \
     echo "ZSTD_VERSION=${ZSTD_VERSION}" && \
     echo "CORERULESET_VERSION=${CORERULESET_VERSION}" && \
-    # echo "PCRE_VERSION=${PCRE_VERSION}" && \
     echo "PCRE2_VERSION=${PCRE2_VERSION}" && \
     \
-    # # fallback 以防 curl/grep 失败
-    # NGINX_VERSION="${NGINX_VERSION:-1.29.0}" && \
-    # OPENSSL_VERSION="${OPENSSL_VERSION:-3.3.0}" && \
-    # OPENSSL_VERSION="3.4.0" && \
-    # ZLIB_VERSION="${ZLIB_VERSION:-1.3.1}" && \
-    # ZSTD_VERSION="${ZSTD_VERSION:-1.5.7}" && \
-    # CORERULESET_VERSION="${CORERULESET_VERSION}" && \
-    # \
-    # echo "==> Using versions: nginx-${NGINX_VERSION}, openssl-${OPENSSL_VERSION}, zlib-${ZLIB_VERSION}" && \
-    # \
-    curl -fSL https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -o nginx.tar.gz && \
-    tar xzf nginx.tar.gz && \
+    # 使用 git clone 获取源码
+    git clone --depth 1 --branch release-${NGINX_VERSION} https://github.com/nginx/nginx.git nginx-${NGINX_VERSION} && \
     \
-    # 修复官方不按规范存放文件
-    curl -fSL https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz -o openssl.tar.gz && \
-    # FILEURL=$(curl -sSL https://openssl-library.org/source/old/3.6/ | grep '<td><a href=".*\.tar\.gz</a></td>' | sed 's/.*<td><a href="\([^"]*\.tar\.gz\)">.*/\1/') && \
-    # curl -fSL ${FILEURL} -o openssl.tar.gz && \
-    tar xzf openssl.tar.gz && \
+    git clone --depth 1 --branch OpenSSL_${OPENSSL_VERSION//./_} https://github.com/openssl/openssl.git openssl-${OPENSSL_VERSION} && \
     \
-    curl -fSL https://fossies.org/linux/misc/zlib-${ZLIB_VERSION}.tar.gz -o zlib.tar.gz && \
-    tar xzf zlib.tar.gz && \
+    git clone --depth 1 --branch v${ZLIB_VERSION} https://github.com/madler/zlib.git zlib-${ZLIB_VERSION} && \
     \
-    curl -fSL https://github.com/PCRE2Project/pcre2/releases/download/pcre2-${PCRE2_VERSION}/pcre2-${PCRE2_VERSION}.tar.gz -o pcre2.tar.gz && \
-    tar xzf pcre2.tar.gz && \
+    git clone --depth 1 --branch v${ZSTD_VERSION} https://github.com/facebook/zstd.git zstd-${ZSTD_VERSION} && \
     \
-    cd nginx-${NGINX_VERSION} && \
+    git clone --depth 1 --branch v${CORERULESET_VERSION} https://github.com/coreruleset/coreruleset.git coreruleset-${CORERULESET_VERSION} && \
+    \
+    git clone --depth 1 --branch pcre2-${PCRE2_VERSION} https://github.com/PCRE2Project/pcre2.git pcre2-${PCRE2_VERSION} && \
+    \
+    # 进入 nginx 目录
+    cd nginx-${NGINX_VERSION}/src && \
     ./configure \
     # --prefix=/etc/nginx \
     # --sbin-path=/usr/sbin/nginx \
@@ -104,10 +89,10 @@ RUN set -eux && \
     --with-ld-opt="-flto -static" \
     # --with-cc-opt="-static -static-libgcc" \
     # --with-ld-opt="-static" \
-    --with-openssl=../openssl-${OPENSSL_VERSION} \
-    --with-zlib=../zlib-${ZLIB_VERSION} \
+    --with-openssl=../../openssl-${OPENSSL_VERSION} \
+    --with-zlib=../../zlib-${ZLIB_VERSION} \
     # --with-pcre \
-    --with-pcre=../pcre2-${PCRE2_VERSION} \
+    --with-pcre=../../pcre2-${PCRE2_VERSION} \
     --with-pcre-jit \
     --with-http_ssl_module \
     --with-http_v2_module \
