@@ -75,10 +75,12 @@ RUN set -eux && \
     curl -fSL https://github.com/PCRE2Project/pcre2/releases/download/pcre2-${PCRE2_VERSION}/pcre2-${PCRE2_VERSION}.tar.gz -o pcre2.tar.gz && \
     tar xzf pcre2.tar.gz && \
     \
+    cd /tmp && \
     git clone --depth 1 --recurse-submodules https://github.com/google/ngx_brotli.git && \
     cd ngx_brotli/deps/brotli && \
-    mkdir out && cd out && \
-    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./installed .. && \
+    git clone https://github.com/google/brotli.git && \
+    # mkdir out && cd out && \
+    # cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./installed .. && \
     make -j$(nproc) && \
     make install && \
     # cd ../../.. && \
@@ -117,6 +119,7 @@ RUN set -eux && \
     --with-zlib=../zlib-${ZLIB_VERSION} \
     # --with-pcre \
     --with-pcre=../pcre2-${PCRE2_VERSION} \
+    # --add-module=../ngx_brotli \
     --add-module=../ngx_brotli \
     --with-pcre-jit \
     --with-http_ssl_module \
