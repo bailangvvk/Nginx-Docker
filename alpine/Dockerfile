@@ -38,6 +38,8 @@ RUN set -eux && \
     && \
     BROTLI_VERSION=$(curl -sL https://github.com/google/brotli/releases/ | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -c2-) \
     && \
+    ZSTD_NGINX_MODULE_VERSION=$(curl -sL https://github.com/nginx-modules/ngx_http_zstd_module/releases/latest | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -c2-) \
+    && \
     \
     echo "=============版本号=============" && \
     echo "NGINX_VERSION=${NGINX_VERSION}" && \
@@ -49,6 +51,7 @@ RUN set -eux && \
     echo "PCRE2_VERSION=${PCRE2_VERSION}" && \
     echo "NGX_BROTLI_VERSION=${NGX_BROTLI_VERSION}" && \
     echo "BROTLI_VERSION=${BROTLI_VERSION}" && \
+    echo "ZSTD_NGINX_MODULE_VERSION=${ZSTD_NGINX_MODULE_VERSION}" && \
     \
     # # fallback 以防 curl/grep 失败
     # NGINX_VERSION="${NGINX_VERSION:-1.29.0}" && \
@@ -75,11 +78,19 @@ RUN set -eux && \
     curl -fSL https://github.com/PCRE2Project/pcre2/releases/download/pcre2-${PCRE2_VERSION}/pcre2-${PCRE2_VERSION}.tar.gz -o pcre2.tar.gz && \
     tar xzf pcre2.tar.gz && \
     \
+    curl -fSL https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz -o zstd.tar.gz && \
+    tar xzf zstd.tar.gz && \
+    \
     cd /tmp && \
     git clone --depth 1 --recurse-submodules https://github.com/google/ngx_brotli.git && \
+    git clone --depth=1 -b v${ZSTD_NGINX_MODULE_VERSION} https://github.com/nginx-modules/ngx_http_zstd_module.git && \
     cd ngx_brotli/deps/brotli && \
     mkdir out && cd out && \
     cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=/usr/local/brotli .. && \
+    make -j$(nproc) && \
+    make install && \
+    cd /tmp/zstd-${ZSTD_VERSION}/build/cmake && \
+    cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local/zstd && \
     make -j$(nproc) && \
     make install && \
     cd /tmp && \
@@ -106,8 +117,8 @@ RUN set -eux && \
     # 移除静态编译标志，开启混合编译
     #--with-ld-opt="-static" \
     # 使用更积极的静态编译和优化选项
-    --with-cc-opt="-O3 -flto -static -static-libgcc -I/usr/local/brotli/include" \
-    --with-ld-opt="-flto -static -L/usr/local/brotli/lib" \
+    --with-cc-opt="-O3 -flto -static -static-libgcc -I/usr/local/brotli/include -I/usr/local/zstd/include" \
+    --with-ld-opt="-flto -static -L/usr/local/brotli/lib -L/usr/local/zstd/lib" \
     # --with-cc-opt="-static -static-libgcc" \
     # --with-ld-opt="-static" \
     --with-openssl=../openssl-${OPENSSL_VERSION} \
@@ -116,6 +127,7 @@ RUN set -eux && \
     --with-pcre=../pcre2-${PCRE2_VERSION} \
     # --add-module=../ngx_brotli \
     --add-module=../ngx_brotli \
+    --add-module=../ngx_http_zstd_module \
     --with-pcre-jit \
     --with-http_ssl_module \
     --with-http_v2_module \
