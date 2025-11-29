@@ -85,8 +85,8 @@ RUN set -eux && \
     cd /tmp && \
     \
     cd nginx-${NGINX_VERSION} && \
-    export CFLAGS="$CFLAGS -I/usr/local/brotli/include" && \
-    export LDFLAGS="$LDFLAGS -L/usr/local/brotli/lib" && \
+    export CFLAGS="${CFLAGS:-''} -I/usr/local/brotli/include" && \
+    export LDFLAGS="${LDFLAGS:-''} -L/usr/local/brotli/lib" && \
     ./configure \
     --prefix=/etc/nginx \
     --sbin-path=/usr/sbin/nginx \
