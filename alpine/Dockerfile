@@ -78,16 +78,11 @@ RUN set -eux && \
     cd /tmp && \
     git clone --depth 1 --recurse-submodules https://github.com/google/ngx_brotli.git && \
     cd ngx_brotli/deps/brotli && \
-    git clone https://github.com/google/brotli.git && \
-    # mkdir out && cd out && \
-    # cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./installed .. && \
-    # make -j$(nproc) && \
-    # make install && \
-    # cd ../../.. && \
+    mkdir out && cd out && \
+    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./installed .. && \
+    make -j$(nproc) && \
+    make install && \
     cd /tmp && \
-    # cd ngx_brotli/deps/brotli && \
-    # git clone --depth 1 https://github.com/google/brotli.git && \
-    # cd ../../.. && \
     \
     cd nginx-${NGINX_VERSION} && \
     ./configure \
