@@ -38,8 +38,6 @@ RUN set -eux && \
     && \
     BROTLI_VERSION=$(curl -sL https://github.com/google/brotli/releases/ | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -c2-) \
     && \
-    ZSTD_NGINX_MODULE_VERSION=$(curl -sL https://github.com/nginx-modules/ngx_http_zstd_module/releases/latest | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -c2-) \
-    && \
     \
     echo "=============版本号=============" && \
     echo "NGINX_VERSION=${NGINX_VERSION}" && \
@@ -51,7 +49,6 @@ RUN set -eux && \
     echo "PCRE2_VERSION=${PCRE2_VERSION}" && \
     echo "NGX_BROTLI_VERSION=${NGX_BROTLI_VERSION}" && \
     echo "BROTLI_VERSION=${BROTLI_VERSION}" && \
-    echo "ZSTD_NGINX_MODULE_VERSION=${ZSTD_NGINX_MODULE_VERSION}" && \
     \
     # # fallback 以防 curl/grep 失败
     # NGINX_VERSION="${NGINX_VERSION:-1.29.0}" && \
@@ -83,7 +80,7 @@ RUN set -eux && \
     \
     cd /tmp && \
     git clone --depth 1 --recurse-submodules https://github.com/google/ngx_brotli.git && \
-    git clone --depth=1 -b v${ZSTD_NGINX_MODULE_VERSION} https://github.com/nginx-modules/ngx_http_zstd_module.git && \
+    git clone --depth=1 https://github.com/tokers/zstd-nginx-module.git && \
     cd ngx_brotli/deps/brotli && \
     mkdir out && cd out && \
     cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=/usr/local/brotli .. && \
@@ -127,7 +124,7 @@ RUN set -eux && \
     --with-pcre=../pcre2-${PCRE2_VERSION} \
     # --add-module=../ngx_brotli \
     --add-module=../ngx_brotli \
-    --add-module=../ngx_http_zstd_module \
+    --add-module=../zstd-nginx-module \
     --with-pcre-jit \
     --with-http_ssl_module \
     --with-http_v2_module \
