@@ -80,15 +80,15 @@ RUN set -eux && \
     \
     cd /tmp && \
     git clone --depth 1 --recurse-submodules https://github.com/google/ngx_brotli.git && \
-    git clone --depth=1 https://github.com/tokers/zstd-nginx-module.git && \
+    # git clone --depth=1 https://github.com/tokers/zstd-nginx-module.git && \
     cd ngx_brotli/deps/brotli && \
     mkdir out && cd out && \
     cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=/usr/local/brotli .. && \
     make -j$(nproc) && \
     make install && \
-    cd /tmp/zstd-${ZSTD_VERSION} && \
-    make -j$(nproc) && \
-    make install PREFIX=/usr/local/zstd && \
+    # cd /tmp/zstd-${ZSTD_VERSION} && \
+    # make -j$(nproc) && \
+    # make install PREFIX=/usr/local/zstd && \
     cd /tmp && \
     \
     cd nginx-${NGINX_VERSION} && \
@@ -123,7 +123,7 @@ RUN set -eux && \
     --with-pcre=../pcre2-${PCRE2_VERSION} \
     # --add-module=../ngx_brotli \
     --add-module=../ngx_brotli \
-    --add-module=../zstd-nginx-module \
+    --add-module=../zstd-${ZSTD_VERSION} \
     --with-pcre-jit \
     --with-http_ssl_module \
     --with-http_v2_module \
