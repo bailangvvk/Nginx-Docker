@@ -80,7 +80,7 @@ RUN set -eux && \
     \
     cd /tmp && \
     git clone --depth 1 --recurse-submodules https://github.com/google/ngx_brotli.git && \
-    # git clone --depth=1 https://github.com/tokers/zstd-nginx-module.git && \
+    git clone --depth=1 https://github.com/tokers/zstd-nginx-module.git && \
     cd ngx_brotli/deps/brotli && \
     mkdir out && cd out && \
     cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=/usr/local/brotli .. && \
