@@ -160,6 +160,9 @@ COPY --from=builder /var/log/nginx /var/log/nginx
 COPY --from=builder /var/run /var/run
 COPY --from=builder /var/cache /var/cache
 
+# 创建 nginx 用户和组
+RUN addgroup -S nginx && adduser -S -G nginx nginx
+
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
