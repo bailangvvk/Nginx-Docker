@@ -86,10 +86,9 @@ RUN set -eux && \
     cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=/usr/local/brotli .. && \
     make -j$(nproc) && \
     make install && \
-    cd /tmp/zstd-${ZSTD_VERSION}/build/cmake && \
-    cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local/zstd && \
+    cd /tmp/zstd-${ZSTD_VERSION} && \
     make -j$(nproc) && \
-    make install && \
+    make install PREFIX=/usr/local/zstd && \
     cd /tmp && \
     \
     cd nginx-${NGINX_VERSION} && \
