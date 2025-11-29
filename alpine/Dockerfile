@@ -85,8 +85,6 @@ RUN set -eux && \
     cd /tmp && \
     \
     cd nginx-${NGINX_VERSION} && \
-    export CFLAGS="${CFLAGS:-''} -I/usr/local/brotli/include" && \
-    export LDFLAGS="${LDFLAGS:-''} -L/usr/local/brotli/lib" && \
     ./configure \
     --prefix=/etc/nginx \
     --sbin-path=/usr/sbin/nginx \
@@ -108,8 +106,8 @@ RUN set -eux && \
     # 移除静态编译标志，开启混合编译
     #--with-ld-opt="-static" \
     # 使用更积极的静态编译和优化选项
-    --with-cc-opt="-O3 -flto -static -static-libgcc" \
-    --with-ld-opt="-flto -static" \
+    --with-cc-opt="-O3 -flto -static -static-libgcc -I/usr/local/brotli/include" \
+    --with-ld-opt="-flto -static -L/usr/local/brotli/lib" \
     # --with-cc-opt="-static -static-libgcc" \
     # --with-ld-opt="-static" \
     --with-openssl=../openssl-${OPENSSL_VERSION} \
