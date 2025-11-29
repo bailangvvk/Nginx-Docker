@@ -99,10 +99,10 @@ RUN set -eux && \
     --http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp \
     --http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp \
     --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
-    --user=nginx \
-    --group=nginx \
-    # --user=root \
-    # --group=root \
+    # --user=nginx \
+    # --group=nginx \
+    --user=root \
+    --group=root \
     # 移除静态编译标志，开启混合编译
     #--with-ld-opt="-static" \
     # 使用更积极的静态编译和优化选项
@@ -159,9 +159,6 @@ COPY --from=builder /usr/lib/nginx/modules /usr/lib/nginx/modules
 COPY --from=builder /var/log/nginx /var/log/nginx
 COPY --from=builder /var/run /var/run
 COPY --from=builder /var/cache /var/cache
-
-# 创建 nginx 用户和组
-RUN addgroup -S nginx && adduser -S -G nginx nginx
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
