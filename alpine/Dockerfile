@@ -86,9 +86,10 @@ RUN set -eux && \
     cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=/usr/local/brotli .. && \
     make -j$(nproc) && \
     make install && \
-    cd /tmp/zstd-${ZSTD_VERSION} && \
+    cd /tmp/zstd-${ZSTD_VERSION}/build/cmake && \
+    cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local/zstd && \
     make -j$(nproc) && \
-    make install PREFIX=/usr/local/zstd && \
+    make install && \
     cd /tmp && \
     \
     cd nginx-${NGINX_VERSION} && \
@@ -106,21 +107,32 @@ RUN set -eux && \
     --http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp \
     --http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp \
     --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
+    # --user=nginx \
+    # --group=nginx \
     --user=root \
     --group=root \
+    # 移除静态编译标志，开启混合编译
+    #--with-ld-opt="-static" \
+    # 使用更积极的静态编译和优化选项
     --with-cc-opt="-O3 -flto -static -static-libgcc -I/usr/local/brotli/include -I/usr/local/zstd/include" \
     --with-ld-opt="-flto -static -L/usr/local/brotli/lib -L/usr/local/zstd/lib" \
+    # --with-cc-opt="-static -static-libgcc" \
+    # --with-ld-opt="-static" \
     --with-openssl=../openssl-${OPENSSL_VERSION} \
     --with-zlib=../zlib-${ZLIB_VERSION} \
+    # --with-pcre \
     --with-pcre=../pcre2-${PCRE2_VERSION} \
+    # --add-module=../ngx_brotli \
+    --add-module=../ngx_brotli \
+    --add-module=../zstd-nginx-module \
     --with-pcre-jit \
     --with-http_ssl_module \
     --with-http_v2_module \
     --with-http_gzip_static_module \
     --with-http_stub_status_module \
-    --with-threads \
-    --add-module=../ngx_brotli \
-    --add-module=../zstd-nginx-module && \
+    # --without-http_rewrite_module \
+    # --without-http_auth_basic_module \
+    --with-threads && \
     make -j$(nproc) && \
     make install && \
     strip /usr/sbin/nginx && \
